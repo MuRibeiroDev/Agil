@@ -11,7 +11,7 @@ const AppState = {
     photos: {},
     formData: {},
     currentStep: 1,
-    totalSteps: 5
+    totalSteps: 6
 };
 
 // Inicialização principal
@@ -745,8 +745,13 @@ function showStep(stepNumber) {
     // Atualizar estado
     AppState.currentStep = stepNumber;
     
-    // Re-inicializar assinatura se for o passo 5
+    // Preencher dados da revisão se for o passo 5
     if (stepNumber === 5) {
+        populateReviewData();
+    }
+    
+    // Re-inicializar assinatura se for o passo 6
+    if (stepNumber === 6) {
         setTimeout(() => {
             initSignature();
         }, 200); // Pequeno delay para garantir que o canvas está visível
@@ -938,6 +943,93 @@ function clearFieldErrors(fields) {
             field.classList.remove('validation-error');
         }
     });
+}
+
+// Preencher dados da revisão
+function populateReviewData() {
+    // Dados do veículo
+    document.getElementById('review-placa').textContent = document.getElementById('placa').value || '-';
+    document.getElementById('review-modelo').textContent = document.getElementById('modelo').value || '-';
+    document.getElementById('review-cor').textContent = document.getElementById('cor').value || '-';
+    document.getElementById('review-ano').textContent = document.getElementById('ano').value || '-';
+    
+    // Questionário
+    const questionsContainer = document.getElementById('review-questions');
+    questionsContainer.innerHTML = '';
+    
+    const questions = [
+        { name: 'ar_condicionado', text: 'Tem ar condicionado?' },
+        { name: 'antenas', text: 'Antenas?' },
+        { name: 'tapetes', text: 'Tapetes?' },
+        { name: 'tapete_porta_malas', text: 'Tapete porta malas?' },
+        { name: 'bateria', text: 'Bateria?' },
+        { name: 'retrovisor_direito', text: 'Retrovisor direito?' },
+        { name: 'retrovisor_esquerdo', text: 'Retrovisor esquerdo?' },
+        { name: 'extintor', text: 'Extintor?' },
+        { name: 'roda_comum', text: 'Roda comum?' },
+        { name: 'roda_especial', text: 'Roda especial?' },
+        { name: 'chave_principal', text: 'Chave principal?' },
+        { name: 'chave_reserva', text: 'Chave reserva?' },
+        { name: 'manual', text: 'Manual?' },
+        { name: 'documento', text: 'Documento?' },
+        { name: 'nota_fiscal', text: 'Nota fiscal?' },
+        { name: 'limpador_dianteiro', text: 'Limpador pára-brisa dianteiro?' },
+        { name: 'limpador_traseiro', text: 'Limpador pára-brisa traseiro?' },
+        { name: 'triangulo', text: 'Triângulo?' },
+        { name: 'macaco', text: 'Macaco?' },
+        { name: 'chave_roda', text: 'Chave de roda?' },
+        { name: 'pneu_step', text: 'Pneu step?' }
+    ];
+    
+    questions.forEach(question => {
+        const element = document.querySelector(`input[name="${question.name}"]`);
+        const isChecked = element ? element.checked : false;
+        const answer = '';  // Sem texto, apenas a cor da bolinha
+        const answerClass = isChecked ? 'sim' : 'nao';
+        
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'review-question';
+        
+        questionDiv.innerHTML = `
+            <span class="review-question-text">${question.text}</span>
+            <span class="review-question-answer ${answerClass}">${answer}</span>
+        `;
+        
+        questionsContainer.appendChild(questionDiv);
+    });
+    
+    // Fotos
+    const photosContainer = document.getElementById('review-photos');
+    photosContainer.innerHTML = '';
+    
+    if (AppState.uploadedPhotos && AppState.uploadedPhotos.length > 0) {
+        AppState.uploadedPhotos.forEach((photo, index) => {
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'review-photo';
+            
+            const img = document.createElement('img');
+            img.src = photo.url || photo.src;
+            img.alt = `Foto ${index + 1}`;
+            
+            photoDiv.appendChild(img);
+            photosContainer.appendChild(photoDiv);
+        });
+    } else {
+        photosContainer.innerHTML = '<p class="review-no-photos">Nenhuma foto adicionada</p>';
+    }
+    
+    // Dados do conferente
+    document.getElementById('review-conferente').textContent = document.getElementById('nome_conferente').value || '-';
+    
+    // Data e hora
+    const dataVistoria = document.getElementById('data_vistoria').value;
+    if (dataVistoria) {
+        const date = new Date(dataVistoria);
+        const formatted = date.toLocaleString('pt-BR');
+        document.getElementById('review-data').textContent = formatted;
+    } else {
+        document.getElementById('review-data').textContent = '-';
+    }
 }
 
 // ========================

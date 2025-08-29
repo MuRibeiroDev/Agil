@@ -444,6 +444,158 @@ body {
   font-style: italic;
 }
 
+/* Review Section */
+.review-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.review-section {
+  background: white;
+  border-radius: var(--radius);
+  padding: var(--spacing-lg);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--primary);
+}
+
+.review-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.review-value {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  text-align: right;
+}
+
+.review-questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.review-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--secondary);
+  min-height: 50px;
+}
+
+.review-question-text {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: var(--font-sm);
+  flex: 1;
+  margin-right: var(--spacing-md);
+}
+
+.review-question-answer {
+    font-weight: 600;
+    font-size: 0;
+    padding: 0;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.review-question-answer.sim {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.review-question-answer.nao {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.review-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.review-photo {
+  aspect-ratio: 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.review-no-photos {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: var(--spacing-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+}
+
+.review-confirmation {
+  margin-top: var(--spacing-lg);
+}
+
+.confirmation-box {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: var(--radius);
+  padding: var(--spacing-lg);
+}
+
+.confirmation-text {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: #92400e;
+  text-align: center;
+  line-height: 1.5;
+}
+
 /* Buttons */
 .button {
   display: inline-flex;
@@ -1000,6 +1152,48 @@ body {
     padding: var(--spacing-sm);
     width: 100%;
     max-width: none;
+  }
+  
+  /* Review section mobile */
+  .review-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+  
+  .review-questions {
+    grid-template-columns: 1fr;
+  }
+  
+  .review-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+  
+  .review-value {
+    text-align: left;
+    font-weight: 600;
+  }
+  
+  .review-photos {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: var(--spacing-sm);
+  }
+  
+  .review-section {
+    padding: var(--spacing-md);
+  }
+  
+  .review-title {
+    font-size: var(--font-base);
+  }
+  
+  .confirmation-box {
+    padding: var(--spacing-md);
+  }
+  
+  .confirmation-text {
+    font-size: var(--font-xs);
   }
 }
 

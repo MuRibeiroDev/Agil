@@ -510,10 +510,77 @@
                     </div>
                 </section>
 
-                <!-- Passo 5: Assinatura Digital -->
+                <!-- Passo 5: Revisão da Vistoria -->
                 <section class="section step-content hidden" id="step-5">
                     <h2 class="section-title">
-                         Assinatura Digital do Cliente
+                        📋 Revisão da Vistoria
+                    </h2>
+                    <div class="review-container">
+                        <div class="review-section">
+                            <h3 class="review-title">🚗 Dados do Veículo</h3>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Placa:</span>
+                                    <span class="review-value" id="review-placa">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Modelo:</span>
+                                    <span class="review-value" id="review-modelo">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Cor:</span>
+                                    <span class="review-value" id="review-cor">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Ano:</span>
+                                    <span class="review-value" id="review-ano">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">✅ Questionário de Vistoria</h3>
+                            <div class="review-questions" id="review-questions">
+                                <!-- Perguntas serão preenchidas dinamicamente -->
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">📸 Fotos da Vistoria</h3>
+                            <div class="review-photos" id="review-photos">
+                                <p class="review-no-photos">Nenhuma foto adicionada</p>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">👤 Dados do Conferente</h3>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Nome:</span>
+                                    <span class="review-value" id="review-conferente">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Data/Hora:</span>
+                                    <span class="review-value" id="review-data">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="review-confirmation">
+                            <div class="confirmation-box">
+                                <p class="confirmation-text">
+                                    ⚠️ <strong>Atenção:</strong> Verifique todas as informações acima antes de prosseguir para a assinatura.
+                                    Após assinar, não será possível alterar os dados da vistoria.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 6: Assinatura Digital -->
+                <section class="section step-content hidden" id="step-6">
+                    <h2 class="section-title">
+                        ✍️ Assinatura Digital do Cliente
                     </h2>
                     <div class="signature-container">
                         <canvas id="signature-canvas" class="signature-canvas"></canvas>
