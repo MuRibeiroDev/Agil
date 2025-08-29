@@ -9,6 +9,7 @@ const AppState = {
         cliente: null
     },
     photos: {},
+    uploadedPhotos: [],
     formData: {},
     currentStep: 1,
     totalSteps: 6
@@ -50,6 +51,19 @@ function initPhotoHandlers() {
     
     photoInputs.forEach(input => {
         input.addEventListener('change', handlePhotoUpload);
+        
+        // Adicionar clique ao preview correspondente
+        const previewId = input.id.replace('foto_', 'preview_');
+        const preview = document.getElementById(previewId);
+        
+        if (preview) {
+            preview.addEventListener('click', function() {
+                input.click();
+            });
+            
+            // Adicionar estilo de cursor pointer
+            preview.style.cursor = 'pointer';
+        }
     });
 }
 
@@ -67,9 +81,9 @@ function handlePhotoUpload(event) {
         return;
     }
     
-    // Validar tamanho (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        showToast('Erro', 'Imagem muito grande. Máximo 5MB', 'error');
+    // Validar tamanho (máximo 700MB)
+    if (file.size > 700 * 1024 * 1024) {
+        showToast('Erro', 'Imagem muito grande. Máximo 700MB', 'error');
         input.value = '';
         return;
     }
@@ -81,20 +95,34 @@ function handlePhotoUpload(event) {
         const reader = new FileReader();
         
         reader.onload = function(e) {
+            const photoData = {
+                file: file,
+                url: e.target.result,
+                name: input.name,
+                timestamp: new Date().toISOString()
+            };
+            
             preview.innerHTML = `
-                <img src="${e.target.result}" alt="Preview">
+                <img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview da foto')">
+                <button type="button" class="photo-remove" onclick="removePhoto('${input.name}', '${previewId}')">×</button>
                 <span class="photo-success">✓ Foto capturada</span>
             `;
             preview.classList.add('has-image');
             
-            // Armazenar no estado
-            AppState.photos[input.name] = {
-                file: file,
-                dataUrl: e.target.result,
-                timestamp: new Date().toISOString()
-            };
+            // Armazenar no estado (tanto no formato antigo quanto no novo)
+            AppState.photos[input.name] = photoData;
             
-            showToast('Foto', 'Foto capturada com sucesso', 'success');
+            // Adicionar ao array uploadedPhotos se não existir (com verificação de segurança)
+            if (!AppState.uploadedPhotos || !Array.isArray(AppState.uploadedPhotos)) {
+                AppState.uploadedPhotos = [];
+            }
+            
+            const existingIndex = AppState.uploadedPhotos.findIndex(p => p.name === input.name);
+            if (existingIndex >= 0) {
+                AppState.uploadedPhotos[existingIndex] = photoData;
+            } else {
+                AppState.uploadedPhotos.push(photoData);
+            }
         };
         
         reader.onerror = function() {
@@ -103,6 +131,30 @@ function handlePhotoUpload(event) {
         };
         
         reader.readAsDataURL(file);
+    }
+}
+
+// Função para remover foto
+function removePhoto(photoName, previewId) {
+    // Remover do estado
+    delete AppState.photos[photoName];
+    
+    // Remover do array uploadedPhotos (com verificação de segurança)
+    if (AppState.uploadedPhotos && Array.isArray(AppState.uploadedPhotos)) {
+        AppState.uploadedPhotos = AppState.uploadedPhotos.filter(p => p.name !== photoName);
+    }
+    
+    // Restaurar preview
+    const preview = document.getElementById(previewId);
+    if (preview) {
+        preview.innerHTML = '📸 Toque para fotografar';
+        preview.classList.remove('has-image');
+    }
+    
+    // Limpar input - buscar pelo name
+    const input = document.querySelector(`input[name="${photoName}"]`);
+    if (input) {
+        input.value = '';
     }
 }
 
@@ -520,6 +572,7 @@ function clearForm() {
     }
     // Limpar estado
     AppState.photos = {};
+    AppState.uploadedPhotos = [];
     AppState.signatures.cliente = null;
     // Resetar data/hora
     initDateTime();
@@ -1003,6 +1056,15 @@ function populateReviewData() {
     photosContainer.innerHTML = '';
     
     if (AppState.uploadedPhotos && AppState.uploadedPhotos.length > 0) {
+        // Criar container do carrossel
+        const carouselContainer = document.createElement('div');
+        carouselContainer.className = 'photos-container';
+        
+        const carousel = document.createElement('div');
+        carousel.className = 'photos-carousel';
+        carousel.id = 'photos-carousel';
+        
+        // Adicionar fotos ao carrossel
         AppState.uploadedPhotos.forEach((photo, index) => {
             const photoDiv = document.createElement('div');
             photoDiv.className = 'review-photo';
@@ -1010,10 +1072,48 @@ function populateReviewData() {
             const img = document.createElement('img');
             img.src = photo.url || photo.src;
             img.alt = `Foto ${index + 1}`;
+            img.style.cursor = 'pointer';
+            img.onclick = () => openPhotoModal(photo.url || photo.src, `Foto ${index + 1}`);
             
             photoDiv.appendChild(img);
-            photosContainer.appendChild(photoDiv);
+            carousel.appendChild(photoDiv);
         });
+        
+        carouselContainer.appendChild(carousel);
+        
+        // Adicionar controles se houver mais de uma foto
+        if (AppState.uploadedPhotos.length > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'carousel-controls carousel-prev';
+            prevBtn.innerHTML = '‹';
+            prevBtn.onclick = () => moveCarousel(-1);
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'carousel-controls carousel-next';
+            nextBtn.innerHTML = '›';
+            nextBtn.onclick = () => moveCarousel(1);
+            
+            const counter = document.createElement('div');
+            counter.className = 'photos-counter';
+            counter.id = 'photos-counter';
+            counter.textContent = `1 / ${AppState.uploadedPhotos.length}`;
+            
+            carouselContainer.appendChild(prevBtn);
+            carouselContainer.appendChild(nextBtn);
+            carouselContainer.appendChild(counter);
+            
+            // Adicionar suporte a toque para dispositivos móveis
+            addTouchSupport(carousel);
+        }
+        
+        photosContainer.appendChild(carouselContainer);
+        
+        // Inicializar estado do carrossel
+        if (!window.carouselState) {
+            window.carouselState = { currentIndex: 0 };
+        }
+        
+        updateCarouselControls();
     } else {
         photosContainer.innerHTML = '<p class="review-no-photos">Nenhuma foto adicionada</p>';
     }
@@ -1052,4 +1152,214 @@ function isValidPlaca(placa) {
     const formatoMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
     
     return formatoAntigo.test(placaLimpa) || formatoMercosul.test(placaLimpa);
+}
+
+// FUNÇÕES DO CARROSSEL DE FOTOS
+// ===============================
+
+// Mover carrossel de fotos
+function moveCarousel(direction) {
+    if (!window.carouselState || !AppState.uploadedPhotos || AppState.uploadedPhotos.length <= 1) {
+        return;
+    }
+    
+    const totalPhotos = AppState.uploadedPhotos.length;
+    const newIndex = window.carouselState.currentIndex + direction;
+    
+    // Verificar limites
+    if (newIndex < 0) {
+        window.carouselState.currentIndex = 0;
+    } else if (newIndex >= totalPhotos) {
+        window.carouselState.currentIndex = totalPhotos - 1;
+    } else {
+        window.carouselState.currentIndex = newIndex;
+    }
+    
+    updateCarouselPosition();
+    updateCarouselControls();
+}
+
+// Atualizar posição do carrossel
+function updateCarouselPosition() {
+    const carousel = document.getElementById('photos-carousel');
+    if (!carousel || !window.carouselState) return;
+    
+    const photoWidth = 200; // Largura da foto + gap
+    const gap = 16; // Espaçamento entre fotos
+    const offset = -(window.carouselState.currentIndex * (photoWidth + gap));
+    
+    carousel.style.transform = `translateX(${offset}px)`;
+}
+
+// Atualizar controles do carrossel
+function updateCarouselControls() {
+    if (!window.carouselState || !AppState.uploadedPhotos) return;
+    
+    const prevBtn = document.querySelector('.carousel-prev');
+    const nextBtn = document.querySelector('.carousel-next');
+    const counter = document.getElementById('photos-counter');
+    
+    if (prevBtn) {
+        prevBtn.disabled = window.carouselState.currentIndex === 0;
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = window.carouselState.currentIndex >= AppState.uploadedPhotos.length - 1;
+    }
+    
+    if (counter) {
+        counter.textContent = `${window.carouselState.currentIndex + 1} / ${AppState.uploadedPhotos.length}`;
+    }
+}
+
+// Adicionar suporte a toque para carrossel
+function addTouchSupport(carousel) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    
+    carousel.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        carousel.style.transition = 'none';
+    });
+    
+    carousel.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        
+        currentX = e.touches[0].clientX;
+        const diffX = currentX - startX;
+        
+        // Prevenir scroll vertical quando arrastando horizontalmente
+        if (Math.abs(diffX) > 10) {
+            e.preventDefault();
+        }
+    });
+    
+    carousel.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        carousel.style.transition = 'transform 0.3s ease';
+        
+        const diffX = currentX - startX;
+        const threshold = 50; // Distância mínima para trocar foto
+        
+        if (Math.abs(diffX) > threshold) {
+            if (diffX > 0) {
+                moveCarousel(-1); // Swipe direita = foto anterior
+            } else {
+                moveCarousel(1);  // Swipe esquerda = próxima foto
+            }
+        } else {
+            // Voltar para posição original se não passou do threshold
+            updateCarouselPosition();
+        }
+    });
+    
+    // Adicionar também suporte para mouse drag (desktop)
+    carousel.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        isDragging = true;
+        carousel.style.transition = 'none';
+        carousel.style.cursor = 'grabbing';
+        e.preventDefault();
+    });
+    
+    carousel.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        currentX = e.clientX;
+        e.preventDefault();
+    });
+    
+    carousel.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        carousel.style.transition = 'transform 0.3s ease';
+        carousel.style.cursor = 'grab';
+        
+        const diffX = currentX - startX;
+        const threshold = 50;
+        
+        if (Math.abs(diffX) > threshold) {
+            if (diffX > 0) {
+                moveCarousel(-1);
+            } else {
+                moveCarousel(1);
+            }
+        } else {
+            updateCarouselPosition();
+        }
+    });
+    
+    carousel.addEventListener('mouseleave', (e) => {
+        if (isDragging) {
+            isDragging = false;
+            carousel.style.transition = 'transform 0.3s ease';
+            carousel.style.cursor = 'grab';
+            updateCarouselPosition();
+        }
+    });
+    
+    // Definir cursor padrão
+    carousel.style.cursor = 'grab';
+}
+
+// Função para abrir modal de visualização de foto
+function openPhotoModal(imageSrc, altText) {
+    // Criar modal se não existir
+    let modal = document.getElementById('photo-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'photo-modal';
+        modal.className = 'photo-modal';
+        modal.innerHTML = `
+            <div class="photo-modal-content">
+                <span class="photo-modal-close">&times;</span>
+                <img class="photo-modal-image" src="" alt="">
+                <div class="photo-modal-caption"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Adicionar eventos de fechamento
+        const closeBtn = modal.querySelector('.photo-modal-close');
+        closeBtn.onclick = closePhotoModal;
+        
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closePhotoModal();
+            }
+        };
+        
+        // Fechar com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.style.display === 'block') {
+                closePhotoModal();
+            }
+        });
+    }
+    
+    // Atualizar conteúdo do modal
+    const img = modal.querySelector('.photo-modal-image');
+    const caption = modal.querySelector('.photo-modal-caption');
+    
+    img.src = imageSrc;
+    img.alt = altText;
+    caption.textContent = altText;
+    
+    // Mostrar modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Prevenir scroll do body
+}
+
+// Função para fechar modal de visualização de foto
+function closePhotoModal() {
+    const modal = document.getElementById('photo-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restaurar scroll do body
+    }
 }
