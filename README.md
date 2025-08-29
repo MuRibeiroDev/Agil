@@ -47,7 +47,7 @@ pip install -r requirements.txt
 
 5. Execute o servidor:
 ```bash
-cd frontend
+cd vistoria
 python create_app.py
 ```
 
@@ -57,7 +57,7 @@ python create_app.py
 
 ```
 SistemaAgil/
-├── frontend/
+├── vistoria/
 │   ├── templates/
 │   │   └── index.html          # Interface principal
 │   ├── css/
