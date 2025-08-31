@@ -80,7 +80,7 @@
             </div>
 
             <!-- Vistoria Form -->
-            <form id="form-vistoria" class="vistoria-form">
+            <form id="form-vistoria" class="vistoria-form" novalidate>
                 <!-- Passo 1: Informações do Veículo -->
                 <section class="section step-content" id="step-1">
                     <h2 class="section-title">
@@ -93,16 +93,16 @@
                             <input type="text" id="nome_cliente" name="nome_cliente" class="input uppercase-input" placeholder="Nome cliente" required>
                         </div>
                         <div class="form-group">
-                            <label for="placa" class="label">Placa *</label>
-                            <input type="text" id="placa" name="placa" class="input uppercase-input" placeholder="ABC1234" maxlength="7" required>
+                            <label for="placa" class="label">Placa</label>
+                            <input type="text" id="placa" name="placa" class="input uppercase-input" placeholder="ABC1234" maxlength="7">
                         </div>
                         <div class="form-group">
                             <label for="modelo" class="label">Modelo *</label>
                             <input type="text" id="modelo" name="modelo" class="input uppercase-input" placeholder="Honda Civic" required>
                         </div>
                         <div class="form-group">
-                            <label for="cor" class="label">Cor</label>
-                            <input type="text" id="cor" name="cor" class="input uppercase-input" placeholder="Branco">
+                            <label for="cor" class="label">Cor *</label>
+                            <input type="text" id="cor" name="cor" class="input uppercase-input" placeholder="Branco" required>
                         </div>
                         <div class="form-group">
                             <label for="ano" class="label">Ano</label>
@@ -110,7 +110,7 @@
                         </div>
                         <div class="form-group">
                             <label for="km_rodado" class="label">KM Rodado</label>
-                            <input type="text" id="km_rodado" name="km_rodado" class="input" placeholder="Ex: 50.000 km" maxlength="20">
+                            <input type="number" id="km_rodado" name="km_rodado" class="input" placeholder="50000" min="0">
                         </div>
                         <div class="photo-item">
                             <label class="photo-label">Documento/Nota Fiscal</label>

@@ -183,13 +183,13 @@ class VistoriaDatabase:
             
             valores = (
                 token,
-                veiculo.get('placa', ''),
-                veiculo.get('modelo', ''),
-                veiculo.get('cor', ''),
-                ano_valido,
-                dados_vistoria.get('nome_conferente', ''),
-                dados_vistoria.get('nome_cliente', ''),  # Novo campo nome do cliente
-                veiculo.get('km_rodado', ''),  # Campo KM
+                veiculo.get('placa', '') or None,  # Permite null se vazio
+                veiculo.get('modelo', ''),  # Obrigatório
+                veiculo.get('cor', ''),  # Obrigatório
+                ano_valido,  # Pode ser None
+                dados_vistoria.get('nome_conferente', ''),  # Obrigatório
+                dados_vistoria.get('nome_cliente', ''),  # Obrigatório
+                veiculo.get('km_rodado', '') or None,  # Campo KM, permite null se vazio
                 
                 # Questionário
                 questionario.get('ar_condicionado', False),

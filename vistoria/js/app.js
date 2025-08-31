@@ -1013,9 +1013,10 @@ function validateBasicFields() {
     // Limpar erros anteriores
     clearValidationErrors();
     
-    // Validar campos obrigatórios básicos
+    // Validar campos obrigatórios básicos (nome_cliente, cor, modelo e nome_conferente)
     const requiredFields = [
-        { id: 'placa', name: 'Placa' },
+        { id: 'nome_cliente', name: 'Nome do Cliente' },
+        { id: 'cor', name: 'Cor' },
         { id: 'modelo', name: 'Modelo' },
         { id: 'nome_conferente', name: 'Nome do Conferente' }
     ];
@@ -1028,7 +1029,7 @@ function validateBasicFields() {
         }
     });
     
-    // Validar placa
+    // Validar placa APENAS se foi preenchida (não obrigatória)
     const placa = document.getElementById('placa');
     if (placa && placa.value && !isValidPlaca(placa.value)) {
         addFieldError(placa);
@@ -1045,9 +1046,10 @@ function validateForm() {
     // Limpar erros anteriores
     clearValidationErrors();
     
-    // Validar campos obrigatórios
+    // Validar campos obrigatórios (nome_cliente, cor, modelo e nome_conferente)
     const requiredFields = [
-        { id: 'placa', name: 'Placa' },
+        { id: 'nome_cliente', name: 'Nome do Cliente' },
+        { id: 'cor', name: 'Cor' },
         { id: 'modelo', name: 'Modelo' },
         { id: 'nome_conferente', name: 'Nome do Conferente' }
     ];
@@ -1060,7 +1062,7 @@ function validateForm() {
         }
     });
     
-    // Validar placa
+    // Validar placa APENAS se foi preenchida (não obrigatória)
     const placa = document.getElementById('placa');
     if (placa && placa.value && !isValidPlaca(placa.value)) {
         addFieldError(placa);
@@ -1190,14 +1192,14 @@ async function collectFormData() {
         }
     });
     
-    // Garantir que campos obrigatórios existam
+    // Garantir que campos obrigatórios existam (apenas nome_cliente e cor são obrigatórios)
     if (!data.veiculo.placa) data.veiculo.placa = '';
     if (!data.veiculo.modelo) data.veiculo.modelo = '';
     if (!data.veiculo.cor) data.veiculo.cor = '';
     if (!data.veiculo.ano) data.veiculo.ano = '';
-    if (!data.veiculo.km_rodado) data.veiculo.km_rodado = '';  // Novo campo KM
+    if (!data.veiculo.km_rodado) data.veiculo.km_rodado = '';  // Campo KM como número
     if (!data.nome_conferente) data.nome_conferente = '';
-    if (!data.nome_cliente) data.nome_cliente = '';  // Novo campo nome do cliente
+    if (!data.nome_cliente) data.nome_cliente = '';  // Campo obrigatório nome do cliente
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
     // DEBUG: Log dos dados dos pneus coletados
@@ -2467,26 +2469,37 @@ function validateCurrentStep() {
 
 // Validar informações do veículo
 function validateVehicleInfo() {
-    const placa = document.getElementById('placa');
+    const nome_cliente = document.getElementById('nome_cliente');
+    const cor = document.getElementById('cor');
     const modelo = document.getElementById('modelo');
+    const placa = document.getElementById('placa');
     
     let isValid = true;
     
     // Limpar erros visuais anteriores
-    clearFieldErrors([placa, modelo]);
+    clearFieldErrors([nome_cliente, cor, modelo, placa]);
     
-    // Validar placa
-    if (!placa || !placa.value.trim()) {
-        addFieldError(placa);
-        isValid = false;
-    } else if (!isValidPlaca(placa.value)) {
-        addFieldError(placa);
+    // Validar nome do cliente (obrigatório)
+    if (!nome_cliente || !nome_cliente.value.trim()) {
+        addFieldError(nome_cliente);
         isValid = false;
     }
     
-    // Validar modelo
+    // Validar cor (obrigatório)
+    if (!cor || !cor.value.trim()) {
+        addFieldError(cor);
+        isValid = false;
+    }
+    
+    // Validar modelo (obrigatório)
     if (!modelo || !modelo.value.trim()) {
         addFieldError(modelo);
+        isValid = false;
+    }
+    
+    // Validar placa APENAS se foi preenchida (não obrigatória)
+    if (placa && placa.value && !isValidPlaca(placa.value)) {
+        addFieldError(placa);
         isValid = false;
     }
     

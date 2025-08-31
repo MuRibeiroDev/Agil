@@ -11,12 +11,14 @@ class VistoriaModel:
     """Modelo de dados para Vistoria"""
     
     # Campos obrigatórios
-    placa: str
-    modelo: str
-    cor: str
-    ano: str
-    nome_conferente: str
     nome_cliente: str
+    cor: str
+    modelo: str
+    nome_conferente: str
+    
+    # Campos opcionais
+    placa: Optional[str] = None
+    ano: Optional[str] = None
     
     # Campos opcionais
     id: Optional[str] = None
@@ -100,22 +102,16 @@ class VistoriaModel:
         """Validar dados obrigatórios"""
         errors = []
         
-        if not self.placa or not self.placa.strip():
-            errors.append("Placa é obrigatória")
-        
-        if not self.modelo or not self.modelo.strip():
-            errors.append("Modelo é obrigatório")
+        if not self.nome_cliente or not self.nome_cliente.strip():
+            errors.append("Nome do cliente é obrigatório")
         
         if not self.cor or not self.cor.strip():
             errors.append("Cor é obrigatória")
         
-        if not self.ano or not self.ano.strip():
-            errors.append("Ano é obrigatório")
+        if not self.modelo or not self.modelo.strip():
+            errors.append("Modelo é obrigatório")
         
         if not self.nome_conferente or not self.nome_conferente.strip():
             errors.append("Nome do conferente é obrigatório")
-        
-        if not self.nome_cliente or not self.nome_cliente.strip():
-            errors.append("Nome do cliente é obrigatório")
         
         return len(errors) == 0, errors
