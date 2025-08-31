@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Expirado - Vistoria</title>
+    <link rel="stylesheet" href="/frontend/css/style.css">
+    <style>
+        .expired-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-section);
+            padding: 20px;
+        }
+        
+        .expired-container {
+            max-width: 500px;
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            border: 2px solid var(--warning);
+        }
+        
+        .expired-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+        
+        .expired-title {
+            color: var(--warning);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .expired-message {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        
+        .expired-reason {
+            background: var(--warning-light);
+            border: 1px solid var(--warning);
+            border-radius: var(--radius);
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        
+        .expired-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .contact-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        
+        @media (max-width: 480px) {
+            .expired-container {
+                padding: 30px 20px;
+            }
+            
+            .expired-icon {
+                font-size: 60px;
+            }
+            
+            .expired-title {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="expired-page">
+        <div class="expired-container">
+            <div class="expired-icon">⚠️</div>
+            <h1 class="expired-title">Link Expirado</h1>
+            <p class="expired-message">
+                Este link de assinatura não está mais válido.
+            </p>
+            
+            <div class="expired-reason">
+                <strong>Possíveis motivos:</strong><br>
+                • A vistoria já foi assinada anteriormente<br>
+                • O link expirou (válido por 24 horas)<br>
+                • O link foi usado incorretamente
+            </div>
+            
+            <div class="expired-actions">
+                <button onclick="window.close()" class="button button-secondary">
+                    🔒 Fechar Página
+                </button>
+            </div>
+            
+            <div class="contact-info">
+                <strong>Precisa de ajuda?</strong><br>
+                Entre em contato com a empresa que enviou este link.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

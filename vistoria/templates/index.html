@@ -2,11 +2,26 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>Sistema de Vistoria Agil</title>
     
+    <!-- Preconnect para otimizar carregamento -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    
+    <!-- Meta tags para PWA e otimização mobile -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vistoria Agil">
+    
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="apple-touch-icon" href="/assets/favicon.svg">
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json">
     
     <!-- CSS -->
     <link rel="stylesheet" href="/frontend/css/style.css">
@@ -16,18 +31,7 @@
         <!-- Loading -->
         <div id="loading" class="loading hidden">
             <div class="spinner"></div>
-                       <!-- Ações do Formulário (só aparece no último passo) -->
-                <div class="form-actions hidden" id="final-actions">
-                    <div class="action-buttons">
-                        <button type="button" id="btn-finalizar" class="button button-primary button-small">
-                            Finalizar Vistoria
-                        </button>
-                    </div>
-                </div>essando...</p>
         </div>
-
-        <!-- Toast Container -->
-        <div id="toast-container" class="toast-container"></div>
 
         <!-- Main Container -->
         <div class="container">
@@ -99,6 +103,23 @@
                         <div class="form-group">
                             <label for="ano" class="label">Ano</label>
                             <input type="number" id="ano" name="ano" class="input" placeholder="2020" min="1900" max="2035">
+                        </div>
+                        <div class="form-group">
+                            <label for="km_rodado" class="label">KM Rodado</label>
+                            <input type="text" id="km_rodado" name="km_rodado" class="input" placeholder="Ex: 50.000 km" maxlength="20">
+                        </div>
+                        <div class="photo-item">
+                            <label class="photo-label">Documento/Nota Fiscal</label>
+                            <div class="photo-upload">
+                                <input type="file" id="documento_nota_fiscal" name="documento_nota_fiscal" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                <label for="documento_nota_fiscal" class="photo-preview" id="preview_documento">
+                                     📄 Toque para selecionar documento
+                                </label>
+                                <!-- Botão alternativo para desktop - sempre visível -->
+                                <label for="documento_nota_fiscal" class="btn-upload-desktop" id="btn_upload_documento">
+                                    📎 Selecionar Documento
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -535,6 +556,14 @@
                                     <span class="review-label">Ano:</span>
                                     <span class="review-value" id="review-ano">-</span>
                                 </div>
+                                <div class="review-item">
+                                    <span class="review-label">KM Rodado:</span>
+                                    <span class="review-value" id="review-km">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Documento:</span>
+                                    <span class="review-value" id="review-documento">-</span>
+                                </div>
                             </div>
                         </div>
 
@@ -588,8 +617,11 @@
                             <button type="button" id="clear-signature" class="button button-secondary">
                                 🗑️ Limpar Assinatura
                             </button>
+                            <button type="button" id="generate-signature-link" class="button button-warning">
+                                � Salvar e Gerar Link para Cliente
+                            </button>
                         </div>
-                        <p class="signature-note">* O cliente deve assinar digitalmente para confirmar a vistoria</p>
+                        <p class="signature-note">💡 Ao gerar o link, a vistoria será salva automaticamente e o processo será finalizado</p>
                     </div>
                 </section>
 
@@ -644,5 +676,20 @@
 
     <!-- JavaScript -->
     <script src="/frontend/js/app.js"></script>
+    
+    <!-- Service Worker para cache offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/js/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registrado com sucesso:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

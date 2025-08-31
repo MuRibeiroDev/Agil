@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
 Sistema Ágil - Vistoria de Veículos
-Flask Application para servir frontend e API
+Flask Application com PostgreSQL Integration
 """
-import os
 import sys
-from flask import Flask, render_template, send_from_directory, request, jsonify
-from flask_cors import CORS
 import webbrowser
 import threading
 import time
+from flask import Flask, request
+from flask_cors import CORS
+
+# Importar módulos organizados
+from db import init_database, close_database
+from routes.vistoria_routes import vistoria_bp
+from routes.assinatura_routes import assinatura_bp
+from routes.api_routes import api_bp
+
 
 def create_app():
     """Criar e configurar a aplicação Flask"""
@@ -21,79 +27,52 @@ def create_app():
     # Configurar CORS
     CORS(app)
     
-    # Configurações
+    # Configurações para otimização mobile
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # Cache por 1 ano
+    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB máximo (reduzido para mobile)
     app.config['SECRET_KEY'] = 'sistema-agil-vistoria-2025'
-    app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB para uploads de fotos
     
-    @app.route('/')
-    def index():
-        """Página principal da vistoria"""
-        return render_template('index.html')
-    
-    @app.route('/frontend/<path:filename>')
-    def frontend_static(filename):
-        """Servir arquivos estáticos com prefixo /frontend/"""
-        return send_from_directory('.', filename)
-    
-    @app.route('/uploads/<path:filename>')
-    def uploaded_files(filename):
-        """Servir arquivos de upload"""
-        return send_from_directory('frontend/uploads', filename)
-    
-    @app.route('/api/vistoria', methods=['POST'])
-    def salvar_vistoria():
-        """API para salvar dados da vistoria"""
-        try:
-            # Processar dados do formulário
-            dados = request.form.to_dict()
-            arquivos = request.files
+    # Headers de otimização para mobile
+    @app.after_request
+    def add_mobile_headers(response):
+        # Cache para recursos estáticos
+        if request.endpoint and 'static' in request.endpoint:
+            response.headers['Cache-Control'] = 'public, max-age=31536000'
+            response.headers['Expires'] = 'Thu, 31 Dec 2025 23:59:59 GMT'
+        
+        # Headers de segurança e performance
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        
+        # Compressão automática pelo navegador
+        if 'gzip' in request.headers.get('Accept-Encoding', ''):
+            response.headers['Vary'] = 'Accept-Encoding'
             
-            # Aqui você pode implementar a lógica para salvar no banco de dados
-            # Por enquanto, vamos apenas retornar sucesso
-            
-            return jsonify({
-                'success': True,
-                'message': 'Vistoria salva com sucesso!',
-                'id': 'VIST-' + str(int(time.time()))
-            })
-            
-        except Exception as e:
-            return jsonify({
-                'success': False,
-                'message': f'Erro ao salvar vistoria: {str(e)}'
-            }), 500
+        return response
     
-    @app.route('/api/health')
-    def health_check():
-        """Endpoint para verificar se a API está funcionando"""
-        return jsonify({
-            'status': 'ok',
-            'service': 'Sistema Ágil - Vistoria',
-            'version': '1.0.0'
-        })
+    # Inicializar banco de dados
+    if not init_database():
+        print("❌ Erro crítico: Não foi possível conectar ao banco de dados")
+        print("🔧 Verifique as configurações em db/database.py")
+        sys.exit(1)
     
-    @app.errorhandler(404)
-    def not_found(error):
-        """Página de erro 404"""
-        return render_template('index.html'), 404
-    
-    @app.errorhandler(500)
-    def internal_error(error):
-        """Página de erro 500"""
-        return jsonify({
-            'error': 'Erro interno do servidor',
-            'message': 'Por favor, tente novamente mais tarde'
-        }), 500
+    # Registrar blueprints
+    app.register_blueprint(vistoria_bp)
+    app.register_blueprint(assinatura_bp)
+    app.register_blueprint(api_bp)
     
     return app
+
 
 def open_browser():
     """Abrir navegador após o servidor estar pronto"""
     time.sleep(1.5)  # Aguardar servidor iniciar
     try:
         webbrowser.open('http://localhost:5000')
-    except:
+    except Exception:
         pass
+
 
 def main():
     """Função principal para iniciar o servidor"""
@@ -117,9 +96,12 @@ def main():
         )
     except KeyboardInterrupt:
         print("\n⏹️  Servidor parado pelo usuário")
+        close_database()
     except Exception as e:
         print(f"❌ Erro ao iniciar servidor: {e}")
+        close_database()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

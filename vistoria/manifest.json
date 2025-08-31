@@ -1,0 +1,22 @@
+{
+    "name": "Sistema de Vistoria Agil",
+    "short_name": "Vistoria Agil",
+    "description": "Sistema para realização de vistorias veiculares",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2563eb",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/assets/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["business", "productivity"],
+    "lang": "pt-BR",
+    "scope": "/",
+    "prefer_related_applications": false
+}

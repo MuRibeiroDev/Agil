@@ -12,8 +12,13 @@
   --primary-light: #3b82f6;
   --secondary: #64748b;
   --success: #059669;
+  --success-light: #d1fae5;
   --warning: #d97706;
+  --warning-light: #fef3c7;
+  --warning-dark: #b45309;
   --danger: #dc2626;
+  --error: #dc2626;
+  --error-light: #fee2e2;
   --light: #f8fafc;
   --dark: #1e293b;
   --border: #e2e8f0;
@@ -274,6 +279,106 @@ body {
   min-height: 80px;
 }
 
+/* Upload de documento/nota fiscal */
+.document-upload-group {
+  grid-column: span 2; /* Ocupa 2 colunas no grid */
+}
+
+.file-upload-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.input-file {
+  position: absolute;
+  opacity: 0;
+  width: 0.1px;
+  height: 0.1px;
+  z-index: -1;
+}
+
+.file-upload-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--light);
+  cursor: pointer;
+  transition: var(--transition);
+  min-height: 120px;
+  position: relative;
+}
+
+.file-upload-preview:hover {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.file-upload-preview i {
+  font-size: 2rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.file-upload-preview span {
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.file-upload-preview.has-file {
+  border-color: var(--success);
+  background: var(--success-light);
+}
+
+.file-upload-preview.has-file i {
+  color: var(--success);
+}
+
+.file-upload-preview.has-file span {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.file-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--danger);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.file-remove:hover {
+  background: #b91c1c;
+}
+
+/* Responsivo para mobile */
+@media (max-width: 768px) {
+  .document-upload-group {
+    grid-column: span 1; /* Uma coluna só em mobile */
+  }
+  
+  .file-upload-preview {
+    min-height: 100px;
+    padding: var(--spacing-lg);
+  }
+}
+
 /* Checkbox Grid */
 .checkbox-grid {
   display: grid;
@@ -366,6 +471,48 @@ body {
   width: 100%;
   height: 100%;
   cursor: pointer;
+  z-index: 10; /* Garantir que está no topo para cliques */
+}
+
+/* Garantir compatibilidade desktop para inputs de arquivo */
+@media (hover: hover) and (pointer: fine) {
+  .photo-upload input[type="file"] {
+    z-index: 15;
+  }
+  
+  .photo-upload:hover input[type="file"] {
+    opacity: 0.01; /* Quase invisível mas ainda clicável */
+  }
+}
+
+/* Botão alternativo para upload em desktop */
+.btn-upload-desktop {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 8px;
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.2s ease;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.btn-upload-desktop:hover {
+  background: var(--primary-dark);
+}
+
+/* Garantir que labels sejam clicáveis */
+label.photo-preview,
+label.btn-upload-desktop {
+  cursor: pointer;
+  user-select: none;
+  display: block;
 }
 
 .photo-preview {
@@ -397,6 +544,28 @@ body {
   height: 100%;
   object-fit: cover;
   border-radius: var(--radius);
+}
+
+/* Loading de processamento de foto */
+.photo-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+
+.photo-processing .spinner {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 0;
+}
+
+.photo-processing span {
+  font-size: var(--font-sm);
+  font-weight: 500;
 }
 
 .photo-success {
@@ -818,68 +987,6 @@ body {
 
 .hidden {
   display: none !important;
-}
-
-/* Toast Enhanced Styles */
-.toast-container {
-  position: fixed;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
-  z-index: 10000;
-  max-width: 400px;
-}
-
-.toast {
-  background: white;
-  border-radius: var(--radius);
-  margin-bottom: var(--spacing-md);
-  box-shadow: var(--shadow-lg);
-  border-left: 4px solid var(--success);
-  animation: slideIn 0.3s ease-out;
-  cursor: pointer;
-  overflow: hidden;
-  position: relative;
-}
-
-.toast.error {
-  border-left-color: var(--danger);
-}
-
-.toast.warning {
-  border-left-color: var(--warning);
-}
-
-.toast.info {
-  border-left-color: var(--primary);
-}
-
-.toast-content {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-}
-
-.toast-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.toast-text {
-  flex: 1;
-}
-
-.toast-title {
-  font-weight: 600;
-  font-size: var(--font-md);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.toast-message {
-  font-size: var(--font-sm);
-  color: var(--text-secondary);
-  line-height: 1.4;
 }
 
 /* Photo Enhanced Styles */
@@ -1482,6 +1589,41 @@ body {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* Botão Nova Vistoria otimizado para mobile */
+.btn-new-vistoria {
+  background: var(--gradient-primary) !important;
+  color: white !important;
+  border: none !important;
+  padding: var(--spacing-md) var(--spacing-lg) !important;
+  border-radius: var(--radius) !important;
+  font-weight: 600 !important;
+  font-size: var(--font-md) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  min-height: 48px !important; /* Área mínima de toque para mobile */
+  min-width: 140px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--spacing-xs) !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.btn-new-vistoria:active {
+  transform: scale(0.95) !important;
+  background: var(--primary-dark) !important;
+}
+
+/* Para dispositivos móveis */
+@media (max-width: 768px) {
+  .btn-new-vistoria {
+    font-size: var(--font-lg) !important;
+    padding: var(--spacing-lg) var(--spacing-xl) !important;
+    min-height: 52px !important; /* Área maior de toque em mobile */
+  }
+}
+
 .modal.hidden .modal-actions .button {
   transform: translateY(10px) !important;
   opacity: 0.5 !important;
@@ -1557,19 +1699,6 @@ body {
   transform: translateY(15px) !important;
   opacity: 0 !important;
 }
-  
-  /* Toast mobile */
-  .toast-container {
-    top: var(--spacing-sm);
-    right: var(--spacing-sm);
-    left: var(--spacing-sm);
-    max-width: none;
-  }
-  
-  .toast {
-    padding: var(--spacing-md);
-    font-size: var(--font-sm);
-  }
   
   /* Modal mobile - Versão corrigida */
   .modal {
@@ -2234,4 +2363,561 @@ body {
     font-size: 16px;
     margin-top: 15px;
   }
+}
+
+/* Sistema de Assinatura Remota */
+.signature-link-result {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.signature-link-title {
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.signature-link-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.signature-link-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: monospace;
+  font-size: 14px;
+  background: white;
+  color: var(--text-primary);
+}
+
+.signature-link-note {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 10px;
+  background: var(--warning-light);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+}
+
+.button-warning {
+  background: var(--warning);
+  color: white;
+  border: 1px solid var(--warning);
+}
+
+.button-warning:hover {
+  background: var(--warning-dark);
+  border-color: var(--warning-dark);
+}
+
+/* Responsividade para assinatura remota */
+@media (max-width: 768px) {
+  .signature-link-container {
+    flex-direction: column;
+  }
+  
+  .signature-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .signature-controls .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .signature-link-result {
+    padding: 15px;
+  }
+  
+  .signature-link-input {
+    font-size: 12px;
+    padding: 10px;
+  }
+}
+
+/* Animações */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Classe utilitária para destacar elementos com erro */
+.error-highlight {
+  animation: shake 0.5s ease-in-out !important;
+  border-color: var(--danger) !important;
+  border-width: 2px !important;
+}
+
+/* ===== SISTEMA DE NOTIFICAÇÕES MODERNAS ===== */
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 400px;
+}
+
+.notification {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 
+              0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(100%);
+  opacity: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.notification::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: currentColor;
+}
+
+.notification.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.notification.hide {
+  transform: translateX(100%);
+  opacity: 0;
+  margin-bottom: -84px;
+}
+
+.notification:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15), 
+              0 8px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Tipos de notificação */
+.notification.success {
+  color: var(--success);
+  border-color: rgba(5, 150, 105, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.notification.error {
+  color: var(--danger);
+  border-color: rgba(220, 38, 38, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+}
+
+.notification.warning {
+  color: var(--warning);
+  border-color: rgba(217, 119, 6, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.notification.info {
+  color: var(--primary);
+  border-color: rgba(37, 99, 235, 0.2);
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+}
+
+/* Ícone da notificação */
+.notification-icon {
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: white;
+  flex-shrink: 0;
+}
+
+.notification.success .notification-icon {
+  background: var(--success);
+}
+
+.notification.error .notification-icon {
+  background: var(--danger);
+}
+
+.notification.warning .notification-icon {
+  background: var(--warning);
+}
+
+.notification.info .notification-icon {
+  background: var(--primary);
+}
+
+/* Conteúdo da notificação */
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+}
+
+.notification-message {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  word-wrap: break-word;
+}
+
+/* Botão de fechar */
+.notification-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+}
+
+/* Barra de progresso */
+.notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  transition: width linear;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .notification-container {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    max-width: none;
+  }
+  
+  .notification {
+    padding: 14px 16px;
+    min-height: 64px;
+  }
+  
+  .notification-icon {
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
+  }
+  
+  .notification-title {
+    font-size: 13px;
+  }
+  
+  .notification-message {
+    font-size: 12px;
+  }
+}
+
+/* Animações específicas */
+@keyframes notificationSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes notificationSlideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes notificationPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.notification.pulse {
+  animation: notificationPulse 0.3s ease-in-out;
+}
+
+/* Estilos para upload de documento (estilo foto) */
+.document-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.document-icon {
+    font-size: 2em;
+    margin-right: 12px;
+}
+
+.document-icon-large {
+    font-size: 4em;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.document-info {
+    flex: 1;
+    text-align: left;
+}
+
+.document-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+    color: white;
+    padding: 10px;
+    border-radius: 0 0 8px 8px;
+}
+
+.document-name {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #ffffff;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-size {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.document-remove {
+    background: rgba(220, 53, 69, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.document-remove:hover {
+    background: rgba(220, 53, 69, 1);
+}
+
+/* Responsividade para documento */
+@media (max-width: 768px) {
+    .document-selected {
+        padding: 8px;
+    }
+    
+    .document-icon {
+        font-size: 1.5em;
+        margin-right: 8px;
+    }
+    
+    .document-name {
+        font-size: 0.85em;
+    }
+    
+    .document-size {
+        font-size: 0.75em;
+    }
+    
+    .document-remove {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+    }
+}
+
+/* Melhorias para desktop - campo de documento */
+@media (min-width: 769px) {
+    .document-selected {
+        padding: 15px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .document-selected:hover {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.12) 100%);
+        border-color: rgba(255, 255, 255, 0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .document-icon {
+        font-size: 2.5em;
+        margin-right: 16px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .document-name {
+        font-size: 1em;
+        font-weight: 700;
+        margin-bottom: 6px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .document-size {
+        font-size: 0.9em;
+        font-weight: 500;
+    }
+    
+    .document-remove {
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        transition: all 0.2s ease;
+    }
+    
+    .document-remove:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.5);
+    }
+}
+
+/* Fix específico para upload de documentos em desktop */
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+    /* Garantir que o input de arquivo seja sempre clicável */
+    #documento_nota_fiscal {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+        z-index: 100 !important;
+        pointer-events: auto !important;
+    }
+    
+    /* Container deve ser clicável */
+    .photo-upload {
+        position: relative !important;
+        cursor: pointer !important;
+    }
+    
+    /* Reduzir tamanho da seção de documento no desktop */
+    #preview_documento {
+        min-height: 80px !important;
+        height: 80px !important;
+        padding: 15px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Preview deve indicar que é clicável */
+    #preview_documento {
+        cursor: pointer !important;
+        user-select: none !important;
+        position: relative !important;
+    }
+    
+    /* Botão desktop sempre visível em telas grandes */
+    #btn_upload_documento {
+        display: inline-block !important;
+        margin-top: 8px !important;
+        cursor: pointer !important;
+        padding: 8px 16px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Debug helper - remover em produção */
+    .photo-upload:hover #documento_nota_fiscal {
+        border: 2px solid red !important;
+        background: rgba(255, 0, 0, 0.1) !important;
+    }
+}
+
+/* Garantir tamanho original no mobile */
+@media (max-width: 768px) {
+    #preview_documento {
+        min-height: 200px !important;
+        height: auto !important;
+        padding: 20px !important;
+        font-size: 1rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+    
+    /* Esconder o botão no mobile */
+    #btn_upload_documento {
+        display: none !important;
+    }
 }

@@ -1,5 +1,17 @@
 // Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM carregado, inicializando aplicação...');
+    
+    // Verificar se elementos essenciais existem
+    setTimeout(() => {
+        const documentInput = document.getElementById('documento_nota_fiscal');
+        const documentPreview = document.getElementById('preview_documento');
+        
+        console.log('🔍 Verificação de elementos:');
+        console.log('   - Input documento:', !!documentInput, documentInput);
+        console.log('   - Preview documento:', !!documentPreview, documentPreview);
+    }, 100);
+    
     initApp();
 });
 
@@ -10,9 +22,59 @@ const AppState = {
     },
     photos: {},
     uploadedPhotos: [],
+    documentFile: null,  // Arquivo do documento
+    documentData: null,  // Dados processados do documento
     formData: {},
     currentStep: 1,
     totalSteps: 6
+};
+
+// Utilitários de performance para mobile
+const PerformanceUtils = {
+    // Debounce para reduzir chamadas de função
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+    
+    // Throttle para limitar frequência de execução
+    throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    },
+    
+    // Verificar se é dispositivo móvel
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (window.innerWidth <= 768);
+    },
+    
+    // Otimizar eventos de toque
+    addTouchOptimizedEvent(element, eventType, handler) {
+        if (this.isMobile()) {
+            // Para mobile, usar touchstart para resposta mais rápida
+            if (eventType === 'click') {
+                element.addEventListener('touchstart', handler, { passive: true });
+                return;
+            }
+        }
+        element.addEventListener(eventType, handler);
+    }
 };
 
 // Inicialização principal
@@ -20,8 +82,9 @@ function initApp() {
     try {
         // Inicializar componentes
         initDateTime();
-        initPhotoHandlers();
+        initPhotoHandlers(); // Agora inclui documentos também
         initSignature();
+        initRemoteSignature();
         initFormHandlers();
         initStepNavigation();
         initLucideIcons();
@@ -47,13 +110,25 @@ function initDateTime() {
 
 // Inicializar handlers de fotos
 function initPhotoHandlers() {
+    // Incluir TODOS os inputs de arquivo, incluindo documento
     const photoInputs = document.querySelectorAll('input[type="file"]');
     
     photoInputs.forEach(input => {
-        input.addEventListener('change', handlePhotoUpload);
+        // Se for documento, usar handler específico
+        if (input.id === 'documento_nota_fiscal') {
+            input.addEventListener('change', handleDocumentUpload);
+        } else {
+            input.addEventListener('change', handlePhotoUpload);
+        }
         
         // Adicionar clique ao preview correspondente
-        const previewId = input.id.replace('foto_', 'preview_');
+        let previewId;
+        if (input.id === 'documento_nota_fiscal') {
+            previewId = 'preview_documento';
+        } else {
+            previewId = input.id.replace('foto_', 'preview_');
+        }
+        
         const preview = document.getElementById(previewId);
         
         if (preview) {
@@ -67,8 +142,198 @@ function initPhotoHandlers() {
     });
 }
 
+// Inicializar handler para documentos (estilo foto)
+function initDocumentHandler() {
+    console.log('🔧 Inicializando handler de documentos...');
+    
+    const documentInput = document.getElementById('documento_nota_fiscal');
+    const documentPreview = document.getElementById('preview_documento');
+    const uploadButton = document.getElementById('btn_upload_documento');
+    
+    console.log('📄 Input:', documentInput);
+    console.log('🖼️ Preview:', documentPreview);
+    console.log('🔘 Button:', uploadButton);
+    
+    // Detectar se é desktop (múltiplas verificações)
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isLargeScreen = window.innerWidth > 768;
+    const isDesktop = !isTouchDevice && isLargeScreen;
+    
+    console.log('� Touch device?', isTouchDevice);
+    console.log('🖥️ Large screen?', isLargeScreen);
+    console.log('�💻 É desktop?', isDesktop);
+    
+    if (documentInput) {
+        console.log('✅ Input encontrado, configurando eventos...');
+        
+        // Evento de mudança no input (principal funcionalidade)
+        documentInput.addEventListener('change', handleDocumentUpload);
+        
+        // Debug: listener para verificar cliques
+        documentInput.addEventListener('click', function(e) {
+            console.log('🖱️ Click no input detectado');
+        });
+        
+        console.log('✅ Eventos configurados - usando labels nativos!');
+    } else {
+        console.error('❌ Input não encontrado!');
+    }
+}
+
+// Handler para upload de documentos (baseado no de fotos)
+async function handleDocumentUpload(event) {
+    console.log('📁 Iniciando upload de documento...');
+    const input = event.target;
+    const file = input.files[0];
+    
+    if (!file) return;
+    
+    console.log('📄 Arquivo selecionado:', file);
+    
+    // Validar tipo de arquivo
+    const allowedTypes = [
+        'application/pdf',
+        'image/jpeg', 'image/jpg', 'image/png',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    console.log('🔍 Tipo do arquivo:', file.type);
+    
+    if (!allowedTypes.includes(file.type)) {
+        notifications.error('Arquivo inválido', 'Por favor, selecione apenas PDF, imagens ou documentos Word.');
+        input.value = '';
+        return;
+    }
+    
+    // Validar tamanho (máximo 10MB)
+    console.log('📏 Tamanho do arquivo:', file.size, 'bytes');
+    if (file.size > 10 * 1024 * 1024) {
+        notifications.error('Arquivo muito grande', 'Documento deve ter no máximo 10MB.');
+        input.value = '';
+        return;
+    }
+    
+    const preview = document.getElementById('preview_documento');
+    
+    if (preview) {
+        // Mostrar indicador de processamento
+        preview.innerHTML = `
+            <div class="photo-processing">
+                <div class="spinner"></div>
+                <span>Processando documento...</span>
+            </div>
+        `;
+        
+        try {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                
+                let icon = '📄';
+                let displayContent = '';
+                
+                if (file.type.includes('pdf')) {
+                    icon = '📕';
+                    displayContent = `<div class="document-icon-large">${icon}</div>`;
+                } else if (file.type.includes('image')) {
+                    icon = '🖼️';
+                    // Para imagens, mostrar preview igual às fotos
+                    displayContent = `<img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview do documento')">`;
+                } else if (file.type.includes('word')) {
+                    icon = '📝';
+                    displayContent = `<div class="document-icon-large">${icon}</div>`;
+                }
+                
+                preview.innerHTML = `
+                    ${displayContent}
+                    <button type="button" class="photo-remove" onclick="removeDocument()">×</button>
+                    <span class="photo-success">✓ Documento selecionado</span>
+                    <div class="document-info-overlay">
+                        <div class="document-name">${fileName}</div>
+                        <div class="document-size">${fileSize} MB</div>
+                    </div>
+                `;
+                preview.classList.add('has-image'); // Usar a mesma classe das fotos
+                
+                // Salvar documento separadamente das fotos
+                const documentData = {
+                    file: file,
+                    url: e.target.result,
+                    name: 'documento_nota_fiscal',
+                    timestamp: new Date().toISOString(),
+                    fileName: fileName,
+                    fileSize: file.size,
+                    fileType: file.type
+                };
+                
+                // NÃO adicionar ao AppState.photos para evitar processamento como foto
+                // AppState.photos['documento_nota_fiscal'] = documentData;
+                AppState.documentFile = file;
+                AppState.documentData = documentData;
+                
+                console.log('💾 Documento salvo no AppState:', documentData);
+                
+                notifications.success('Documento selecionado', `${fileName} adicionado com sucesso.`);
+            };
+            
+            reader.onerror = function() {
+                notifications.error('Erro no processamento', 'Não foi possível processar o documento. Tente novamente.');
+                input.value = '';
+                resetDocumentPreview(preview);
+            };
+            
+            reader.readAsDataURL(file);
+            
+        } catch (error) {
+            console.error('Erro ao processar documento:', error);
+            notifications.error('Erro no processamento', 'Erro ao processar o documento. Tente novamente.');
+            input.value = '';
+            resetDocumentPreview(preview);
+        }
+    }
+}
+
+// Resetar preview do documento
+function resetDocumentPreview(preview) {
+    preview.innerHTML = '📄 Toque para selecionar documento';
+    preview.classList.remove('has-image');
+}
+
+// Remover documento selecionado
+function removeDocument() {
+    console.log('🗑️ Removendo documento...');
+    
+    const documentInput = document.getElementById('documento_nota_fiscal');
+    const documentPreview = document.getElementById('preview_documento');
+    
+    if (documentInput) {
+        documentInput.value = '';
+        console.log('✅ Input limpo');
+    }
+    
+    if (documentPreview) {
+        resetDocumentPreview(documentPreview);
+        console.log('✅ Preview resetado');
+    }
+    
+    // Limpar do AppState (tanto no formato antigo quanto no novo)
+    AppState.documentFile = null;
+    AppState.documentData = null;
+    if (AppState.photos && AppState.photos['documento_nota_fiscal']) {
+        delete AppState.photos['documento_nota_fiscal'];
+    }
+    
+    console.log('✅ AppState limpo:', AppState.documentFile);
+    
+    notifications.info('Documento removido', 'Nenhum documento selecionado.');
+}
+
 // Handler para upload de fotos
-function handlePhotoUpload(event) {
+// Otimizar processamento de fotos para mobile
+async function handlePhotoUpload(event) {
     const input = event.target;
     const file = input.files[0];
     
@@ -76,14 +341,15 @@ function handlePhotoUpload(event) {
     
     // Validar tipo de arquivo
     if (!file.type.startsWith('image/')) {
-        showToast('Erro', 'Por favor, selecione apenas imagens', 'error');
+        notifications.error('Erro', 'Por favor, selecione apenas imagens');
         input.value = '';
         return;
     }
     
-    // Validar tamanho (máximo 700MB)
-    if (file.size > 700 * 1024 * 1024) {
-        showToast('Erro', 'Imagem muito grande. Máximo 700MB', 'error');
+    // Limite reduzido para mobile: 50MB
+    const maxSizeMB = PerformanceUtils.isMobile() ? 50 : 700;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+        notifications.error('Arquivo muito grande', `Imagem deve ter no máximo ${maxSizeMB}MB. Tente comprimir a imagem antes de enviar.`);
         input.value = '';
         return;
     }
@@ -92,46 +358,130 @@ function handlePhotoUpload(event) {
     const preview = document.getElementById(previewId);
     
     if (preview) {
-        const reader = new FileReader();
+        // Mostrar indicador de processamento
+        preview.innerHTML = `
+            <div class="photo-processing">
+                <div class="spinner"></div>
+                <span>Processando foto...</span>
+            </div>
+        `;
         
-        reader.onload = function(e) {
-            const photoData = {
-                file: file,
-                url: e.target.result,
-                name: input.name,
-                timestamp: new Date().toISOString()
+        try {
+            // Comprimir imagem se for muito grande (otimização mobile)
+            const processedFile = await optimizeImageForMobile(file);
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const photoData = {
+                    file: processedFile,
+                    url: e.target.result,
+                    name: input.name,
+                    timestamp: new Date().toISOString()
+                };
+                
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview da foto')">
+                    <button type="button" class="photo-remove" onclick="removePhoto('${input.name}', '${previewId}')">×</button>
+                    <span class="photo-success">✓ Foto capturada</span>
+                `;
+                preview.classList.add('has-image');
+                
+                // Armazenar no estado (tanto no formato antigo quanto no novo)
+                AppState.photos[input.name] = photoData;
+                
+                // Adicionar ao array uploadedPhotos se não existir (com verificação de segurança)
+                if (!AppState.uploadedPhotos || !Array.isArray(AppState.uploadedPhotos)) {
+                    AppState.uploadedPhotos = [];
+                }
+                
+                const existingIndex = AppState.uploadedPhotos.findIndex(p => p.name === input.name);
+                if (existingIndex >= 0) {
+                    AppState.uploadedPhotos[existingIndex] = photoData;
+                } else {
+                    AppState.uploadedPhotos.push(photoData);
+                }
             };
             
-            preview.innerHTML = `
-                <img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview da foto')">
-                <button type="button" class="photo-remove" onclick="removePhoto('${input.name}', '${previewId}')">×</button>
-                <span class="photo-success">✓ Foto capturada</span>
-            `;
-            preview.classList.add('has-image');
+            reader.onerror = function() {
+                notifications.error('Erro no processamento', 'Não foi possível processar a imagem. Tente novamente com outra imagem.');
+                input.value = '';
+                resetPhotoPreview(preview);
+            };
             
-            // Armazenar no estado (tanto no formato antigo quanto no novo)
-            AppState.photos[input.name] = photoData;
+            reader.readAsDataURL(processedFile);
             
-            // Adicionar ao array uploadedPhotos se não existir (com verificação de segurança)
-            if (!AppState.uploadedPhotos || !Array.isArray(AppState.uploadedPhotos)) {
-                AppState.uploadedPhotos = [];
-            }
-            
-            const existingIndex = AppState.uploadedPhotos.findIndex(p => p.name === input.name);
-            if (existingIndex >= 0) {
-                AppState.uploadedPhotos[existingIndex] = photoData;
-            } else {
-                AppState.uploadedPhotos.push(photoData);
-            }
-        };
-        
-        reader.onerror = function() {
-            showToast('Erro', 'Erro ao processar a imagem', 'error');
+        } catch (error) {
+            console.error('Erro ao otimizar imagem:', error);
+            notifications.error('Erro no processamento', 'Erro ao processar a imagem. Tente novamente.');
             input.value = '';
+            resetPhotoPreview(preview);
+        }
+    }
+}
+
+// Otimização de imagem para dispositivos móveis
+async function optimizeImageForMobile(file) {
+    return new Promise((resolve) => {
+        // Se a imagem é pequena o suficiente, não otimizar
+        if (file.size < 1024 * 1024) { // Menor que 1MB
+            resolve(file);
+            return;
+        }
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Calcular dimensões otimizadas para mobile
+            let { width, height } = calculateOptimalDimensions(img.width, img.height);
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar imagem redimensionada
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Converter para blob com qualidade otimizada
+            canvas.toBlob((blob) => {
+                resolve(blob || file);
+            }, 'image/jpeg', 0.8); // 80% de qualidade
         };
         
-        reader.readAsDataURL(file);
+        img.onerror = () => resolve(file);
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+function calculateOptimalDimensions(originalWidth, originalHeight) {
+    const MAX_WIDTH = PerformanceUtils.isMobile() ? 1280 : 1920;
+    const MAX_HEIGHT = PerformanceUtils.isMobile() ? 1280 : 1920;
+    
+    let width = originalWidth;
+    let height = originalHeight;
+    
+    // Redimensionar se necessário
+    if (width > MAX_WIDTH) {
+        height = (height * MAX_WIDTH) / width;
+        width = MAX_WIDTH;
     }
+    
+    if (height > MAX_HEIGHT) {
+        width = (width * MAX_HEIGHT) / height;
+        height = MAX_HEIGHT;
+    }
+    
+    return { width: Math.round(width), height: Math.round(height) };
+}
+
+function resetPhotoPreview(preview) {
+    preview.innerHTML = `
+        <i data-lucide="camera-off"></i>
+        <span>Toque para fotografar</span>
+    `;
+    preview.classList.remove('has-image');
+    loadLucideIcons();
 }
 
 // Função para remover foto
@@ -283,13 +633,142 @@ function initSignature() {
     console.log('Sistema de assinatura inicializado');
 }
 
-// Inicializar handlers do formulário
+// Inicializar sistema de assinatura remota
+function initRemoteSignature() {
+    const generateLinkBtn = document.getElementById('generate-signature-link');
+    
+    if (generateLinkBtn) {
+        generateLinkBtn.addEventListener('click', generateSignatureLink);
+    }
+}
+
+// Gerar link de assinatura para o cliente
+async function generateSignatureLink() {
+    try {
+        // Validar campos obrigatórios antes de gerar link
+        if (!validateBasicFields()) {
+        notifications.warning('Atenção', 'Preencha os campos obrigatórios: Placa, Modelo e Nome do Conferente');
+            return;
+        }
+        
+        showLoading();
+        
+        // Coletar dados da vistoria atual (sem assinatura)
+        const vistoriaData = collectVistoriaData();
+        
+        // Enviar para o servidor para gerar token e salvar vistoria
+        const response = await fetch('/api/gerar_link_assinatura', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(vistoriaData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const link = `${window.location.origin}/assinatura_cliente?token=${result.token}`;
+            
+            // Mostrar modal de sucesso
+            showSuccessModal(result, link, vistoriaData);
+            
+        } else {
+            showToast('Erro', result.message || 'Erro ao gerar link', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao gerar link:', error);
+        showToast('Erro', 'Erro de conexão ao gerar link', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Coletar dados da vistoria para envio (sem assinatura)
+function collectVistoriaData() {
+    const form = document.getElementById('form-vistoria');
+    
+    const data = {
+        // Informações do veículo
+        veiculo: {},
+        // Questionário
+        questionario: {},
+        // Dados dos pneus
+        pneus: {},
+        // Fotos
+        fotos: AppState.photos,
+        // SEM assinatura para link remoto
+        assinatura: null,
+        // Metadata
+        metadata: {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+        }
+    };
+    
+    // Coletar dados dos inputs do formulário
+    const inputs = form.querySelectorAll('input, select, textarea');
+    
+    inputs.forEach(input => {
+        const name = input.name || input.id;
+        if (!name) return;
+        
+        if (input.type === 'checkbox') {
+            // Para checkboxes, verificar se está marcado
+            data.questionario[name] = input.checked;
+        } else if (input.type === 'radio') {
+            // Para radio buttons, só adicionar se estiver selecionado
+            if (input.checked) {
+                if (['placa', 'modelo', 'cor', 'ano'].includes(name)) {
+                    data.veiculo[name] = input.value;
+                } else {
+                    data[name] = input.value;
+                }
+            }
+        } else if (input.type === 'file') {
+            // Arquivos já estão em AppState.photos
+            return;
+        } else {
+            // Input normal (text, select, textarea, etc.)
+            const value = input.value.trim();
+            
+            // Tratamento especial para campos de observação (sempre incluir, mesmo se vazio)
+            if (name.startsWith('desc_obs_')) {
+                data[name] = value;
+            } else if (value) {
+                if (['placa', 'modelo', 'cor', 'ano'].includes(name)) {
+                    data.veiculo[name] = value;
+                } else {
+                    if (name.startsWith("marca_pneu_")) { 
+                        data.pneus[name] = value; 
+                    } else { 
+                        data[name] = value; 
+                    }
+                }
+            }
+        }
+    });
+    
+    // Garantir que campos obrigatórios existam
+    if (!data.veiculo.placa) data.veiculo.placa = '';
+    if (!data.veiculo.modelo) data.veiculo.modelo = '';
+    if (!data.veiculo.cor) data.veiculo.cor = '';
+    if (!data.veiculo.ano) data.veiculo.ano = '';
+    if (!data.nome_conferente) data.nome_conferente = '';
+    if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
+    
+    console.log('Dados coletados para link:', data);
+    return data;
+}
+
+// Inicializar handlers do formulário com otimização mobile
 function initFormHandlers() {
     const form = document.getElementById('form-vistoria');
     const btnFinalizar = document.getElementById('btn-finalizar');
 
     if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', function(e) {
+        // Usar evento otimizado para mobile
+        PerformanceUtils.addTouchOptimizedEvent(btnFinalizar, 'click', function(e) {
             e.preventDefault();
             showConfirmModal('Deseja realmente finalizar a vistoria?', async function() {
                 if (form) {
@@ -409,17 +888,21 @@ async function handleFormSubmit(event) {
         }
         
         // Coletar dados do formulário
-        const formData = collectFormData();
+        const formData = await collectFormData();
         
-        // Simular salvamento (substituir por API real)
-        await saveVistoria(formData);
+        // Salvar vistoria (incluindo assinatura se presente)
+        const result = await saveVistoria(formData);
         
-        showToast('Sucesso', 'Vistoria salva com sucesso!', 'success');
-        
-        // Limpar formulário após sucesso
-        setTimeout(() => {
+        if (result.success) {
+            notifications.success('Sucesso', 'Vistoria e assinatura salvadas com sucesso!');
+            
+            // Voltar para a tela inicial imediatamente
             clearForm();
-        }, 2000);
+            showStep(1);
+            notifications.info('Info', 'Sistema reiniciado. Você pode iniciar uma nova vistoria.');
+        } else {
+            throw new Error(result.message || 'Erro desconhecido');
+        }
         
     } catch (error) {
         console.error('Erro ao salvar vistoria:', error);
@@ -429,7 +912,39 @@ async function handleFormSubmit(event) {
     }
 }
 
-// Validar formulário
+// Validar apenas campos básicos (sem assinatura)
+function validateBasicFields() {
+    let isValid = true;
+    
+    // Limpar erros anteriores
+    clearValidationErrors();
+    
+    // Validar campos obrigatórios básicos
+    const requiredFields = [
+        { id: 'placa', name: 'Placa' },
+        { id: 'modelo', name: 'Modelo' },
+        { id: 'nome_conferente', name: 'Nome do Conferente' }
+    ];
+    
+    requiredFields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (!element || !element.value.trim()) {
+            addFieldError(element);
+            isValid = false;
+        }
+    });
+    
+    // Validar placa
+    const placa = document.getElementById('placa');
+    if (placa && placa.value && !isValidPlaca(placa.value)) {
+        addFieldError(placa);
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Validar formulário completo (incluindo assinatura)
 function validateForm() {
     let isValid = true;
     
@@ -458,21 +973,30 @@ function validateForm() {
         isValid = false;
     }
     
-    // Validar assinatura (não há campo visual para destacar, mas pode verificar)
+    // Validar assinatura
     if (!AppState.signatures.cliente) {
         isValid = false;
-        // Se estiver no passo 5, destacar de alguma forma
+        showToast('Atenção', 'Assinatura é obrigatória para finalizar a vistoria', 'warning');
+        
+        // Se estiver no passo 5, destacar canvas de assinatura
         if (AppState.currentStep === 5) {
             const canvas = document.getElementById('signature-canvas');
             if (canvas) {
                 canvas.style.borderColor = 'var(--danger)';
                 canvas.style.borderWidth = '3px';
+                canvas.style.animation = 'shake 0.5s ease-in-out';
                 setTimeout(() => {
                     canvas.style.borderColor = '';
                     canvas.style.borderWidth = '';
+                    canvas.style.animation = '';
                 }, 3000);
             }
+        } else {
+            // Se não estiver no passo 5, navegar para ele
+            showStep(5);
         }
+    } else {
+        console.log('✅ Assinatura presente:', AppState.signatures.cliente ? 'Sim' : 'Não');
     }
     
     // Verificar se há pelo menos uma foto (sem validação visual específica)
@@ -493,7 +1017,7 @@ function clearValidationErrors() {
 }
 
 // Coletar dados do formulário
-function collectFormData() {
+async function collectFormData() {
     const form = document.getElementById('form-vistoria');
     const formData = new FormData(form);
     
@@ -502,6 +1026,8 @@ function collectFormData() {
         veiculo: {},
         // Questionário
         questionario: {},
+        // Dados dos pneus
+        pneus: {},
         // Fotos
         fotos: AppState.photos,
         // Assinatura
@@ -513,39 +1039,141 @@ function collectFormData() {
         }
     };
     
-    // Processar campos do formulário
-    for (let [key, value] of formData.entries()) {
-        if (key.startsWith('foto_') || key.startsWith('desc_') || key.startsWith('marca_')) {
-            // Já processado nas fotos
-            continue;
-        }
+    // Coletar dados dos inputs do formulário
+    const inputs = form.querySelectorAll('input, select, textarea');
+    
+    inputs.forEach(input => {
+        const name = input.name || input.id;
+        if (!name) return;
         
-        // Categorizar dados
-        if (['placa', 'modelo', 'cor', 'ano'].includes(key)) {
-            data.veiculo[key] = value;
-        } else if (key === 'nome_conferente' || key === 'data_vistoria') {
-            data[key] = value;
+        if (input.type === 'checkbox') {
+            // Para checkboxes, verificar se está marcado
+            data.questionario[name] = input.checked;
+        } else if (input.type === 'radio') {
+            // Para radio buttons, só adicionar se estiver selecionado
+            if (input.checked) {
+                if (['placa', 'modelo', 'cor', 'ano', 'km_rodado'].includes(name)) {
+                    data.veiculo[name] = input.value;
+                } else {
+                    data[name] = input.value;
+                }
+            }
+        } else if (input.type === 'file') {
+            // Arquivos já estão em AppState.photos
+            return;
         } else {
-            // Questionário (checkboxes)
-            data.questionario[key] = formData.has(key);
+            // Input normal (text, select, textarea, etc.)
+            const value = input.value.trim();
+            
+            // Tratamento especial para campos de observação (sempre incluir, mesmo se vazio)
+            if (name.startsWith('desc_obs_')) {
+                data[name] = value;
+            } else if (value) {
+                if (['placa', 'modelo', 'cor', 'ano', 'km_rodado'].includes(name)) {
+                    data.veiculo[name] = value;
+                } else {
+                    if (name.startsWith("marca_pneu_")) { 
+                        data.pneus[name] = value; 
+                    } else { 
+                        data[name] = value; 
+                    }
+                }
+            }
+        }
+    });
+    
+    // Garantir que campos obrigatórios existam
+    if (!data.veiculo.placa) data.veiculo.placa = '';
+    if (!data.veiculo.modelo) data.veiculo.modelo = '';
+    if (!data.veiculo.cor) data.veiculo.cor = '';
+    if (!data.veiculo.ano) data.veiculo.ano = '';
+    if (!data.veiculo.km_rodado) data.veiculo.km_rodado = '';  // Novo campo KM
+    if (!data.nome_conferente) data.nome_conferente = '';
+    if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
+    
+    // Adicionar documento se existir (priorizar AppState.documentData, depois verificar outros locais)
+    const documentData = AppState.documentData || 
+                         AppState.photos['documento_nota_fiscal'] || 
+                         (AppState.documentFile ? {
+        url: null, // Será convertido depois
+        file: AppState.documentFile,
+        name: AppState.documentFile.name,
+        size: AppState.documentFile.size,
+        type: AppState.documentFile.type
+    } : null);
+    
+    if (documentData && documentData.file) {
+        // Se o documento tem URL (base64), usar ela
+        if (documentData.url) {
+            data.documento = {
+                file: documentData.url, // Base64
+                name: documentData.name || documentData.file.name,
+                size: documentData.size || documentData.file.size,
+                type: documentData.type || documentData.file.type
+            };
+        } else {
+            // Se não tem URL, converter para base64
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve) => {
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(documentData.file);
+            });
+            
+            try {
+                const base64Data = await base64Promise;
+                data.documento = {
+                    file: base64Data,
+                    name: documentData.file.name,
+                    size: documentData.file.size,
+                    type: documentData.file.type
+                };
+                console.log('📄 Documento convertido para base64:', data.documento.name);
+            } catch (error) {
+                console.error('❌ Erro ao converter documento para base64:', error);
+                data.documento = null;
+            }
         }
     }
     
+    console.log('Dados coletados:', data);
     return data;
 }
 
-// Simular salvamento da vistoria
+// Salvar vistoria na API
 async function saveVistoria(data) {
-    // Simular delay de rede
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Aqui você faria a chamada real para a API
-    console.log('Dados da vistoria:', data);
-    
-    // Simular possível erro (descomente para testar)
-    // throw new Error('Erro simulado de rede');
-    
-    return { success: true, id: 'VIST-' + Date.now() };
+    try {
+        const response = await fetch('/api/salvar_vistoria_completa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Erro desconhecido ao salvar');
+        }
+        
+        // Armazenar dados da vistoria para uso posterior
+        AppState.savedVistoria = {
+            id: result.id,
+            token: result.token,
+            data: data
+        };
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Erro ao salvar vistoria:', error);
+        throw error;
+    }
 }
 
 // Limpar formulário
@@ -574,6 +1202,12 @@ function clearForm() {
     AppState.photos = {};
     AppState.uploadedPhotos = [];
     AppState.signatures.cliente = null;
+    AppState.documentFile = null;  // Limpar documento
+    AppState.documentData = null;  // Limpar dados do documento
+    
+    // Limpar preview do documento
+    removeDocument();
+    
     // Resetar data/hora
     initDateTime();
     // Reinicializar ícones
@@ -674,39 +1308,169 @@ function showConfirmModal(message, onConfirm) {
     }, 100);
 }
 
-// Inicializar ícones Lucide
+// Lazy loading para ícones Lucide - otimização mobile
 function initLucideIcons() {
-    if (window.lucide) {
-        lucide.createIcons();
+    // Usar requestIdleCallback para não bloquear a thread principal
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+            loadLucideIcons();
+        });
+    } else {
+        // Fallback para navegadores sem suporte
+        setTimeout(loadLucideIcons, 100);
     }
 }
 
-// Sistema de Toast
-function showToast(title, message, type = 'info', duration = 5000) {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
+function loadLucideIcons() {
+    try {
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    } catch (error) {
+        console.warn('Erro ao carregar ícones Lucide:', error);
+    }
+}
+
+// ===== SISTEMA DE NOTIFICAÇÕES MODERNAS =====
+class NotificationSystem {
+    constructor() {
+        this.container = null;
+        this.notifications = [];
+        this.maxNotifications = 5;
+        this.init();
+    }
     
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-    `;
+    init() {
+        // Criar container se não existir
+        if (!document.querySelector('.notification-container')) {
+            this.container = document.createElement('div');
+            this.container.className = 'notification-container';
+            document.body.appendChild(this.container);
+        } else {
+            this.container = document.querySelector('.notification-container');
+        }
+    }
     
-    container.appendChild(toast);
+    show(title, message, type = 'info', duration = 5000) {
+        // Remover notificações antigas se exceder o máximo
+        if (this.notifications.length >= this.maxNotifications) {
+            this.remove(this.notifications[0]);
+        }
+        
+        const notification = this.create(title, message, type, duration);
+        this.notifications.push(notification);
+        this.container.appendChild(notification);
+        
+        // Animar entrada
+        requestAnimationFrame(() => {
+            notification.classList.add('show');
+        });
+        
+        // Auto-remover se duration > 0
+        if (duration > 0) {
+            const progressBar = notification.querySelector('.notification-progress');
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.style.transition = `width ${duration}ms linear`;
+                setTimeout(() => {
+                    if (progressBar.parentNode) {
+                        progressBar.style.width = '0%';
+                    }
+                }, 50);
+            }
+            
+            setTimeout(() => {
+                this.remove(notification);
+            }, duration);
+        }
+        
+        return notification;
+    }
     
-    // Animar entrada
-    setTimeout(() => toast.classList.add('show'), 10);
+    create(title, message, type, duration) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '⚠',
+            info: 'ℹ'
+        };
+        
+        notification.innerHTML = `
+            <div class="notification-icon">${icons[type] || icons.info}</div>
+            <div class="notification-content">
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close" type="button">&times;</button>
+            ${duration > 0 ? '<div class="notification-progress"></div>' : ''}
+        `;
+        
+        // Event listener para fechar
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => {
+            this.remove(notification);
+        });
+        
+        // Fechar ao clicar na notificação (opcional)
+        notification.addEventListener('click', (e) => {
+            if (e.target === notification || e.target.closest('.notification-content')) {
+                this.remove(notification);
+            }
+        });
+        
+        return notification;
+    }
     
-    // Auto remover
-    setTimeout(() => {
-        toast.classList.remove('show');
+    remove(notification) {
+        if (!notification || !notification.parentNode) return;
+        
+        const index = this.notifications.indexOf(notification);
+        if (index > -1) {
+            this.notifications.splice(index, 1);
+        }
+        
+        notification.classList.add('hide');
+        
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
             }
         }, 300);
-    }, duration);
+    }
+    
+    clear() {
+        this.notifications.forEach(notification => {
+            this.remove(notification);
+        });
+    }
+    
+    // Métodos de conveniência
+    success(title, message, duration = 4000) {
+        return this.show(title, message, 'success', duration);
+    }
+    
+    error(title, message, duration = 6000) {
+        return this.show(title, message, 'error', duration);
+    }
+    
+    warning(title, message, duration = 5000) {
+        return this.show(title, message, 'warning', duration);
+    }
+    
+    info(title, message, duration = 4000) {
+        return this.show(title, message, 'info', duration);
+    }
+}
+
+// Instância global do sistema de notificações
+const notifications = new NotificationSystem();
+
+// Função de compatibilidade para substituir showToast
+function showToast(title, message, type = 'info', duration = 5000) {
+    return notifications.show(title, message, type, duration);
 }
 
 // Loading
@@ -721,6 +1485,302 @@ function hideLoading() {
     const loading = document.getElementById('loading');
     if (loading) {
         loading.classList.add('hidden');
+    }
+}
+
+function showSuccessModal(result, link, vistoriaData) {
+    // Criar modal simplificado
+    const modalHTML = `
+        <div id="success-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h2 class="modal-title">Vistoria gerada!</h2>
+                    <p class="modal-subtitle">Envie o link abaixo para o cliente assinar.</p>
+                    
+                    <div class="link-section">
+                        <div class="link-container">
+                            <input type="text" value="${link}" readonly class="link-input" id="modal-link-input">
+                            <button onclick="copyLinkFromModal('${link}')" class="copy-btn">📋 Copiar</button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button onclick="startNewVistoria()" class="btn-new-vistoria" 
+                                ontouchstart="this.style.transform='scale(0.95)'" 
+                                ontouchend="this.style.transform='scale(1)'"
+                                data-mobile-optimized="true">🆕 Nova Vistoria</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Adicionar modal ao DOM
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Otimização adicional para mobile - garantir que o botão funcione
+    setTimeout(() => {
+        const newVistoriaBtn = document.querySelector('.btn-new-vistoria');
+        if (newVistoriaBtn && PerformanceUtils.isMobile()) {
+            // Adicionar listener adicional para garantir funcionamento em mobile
+            newVistoriaBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                setTimeout(() => {
+                    startNewVistoria();
+                }, 100);
+            }, { passive: false });
+        }
+    }, 100);
+    
+    // Adicionar estilos CSS simplificados
+    const style = document.createElement('style');
+    style.textContent = `
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .modal-body {
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .modal-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .modal-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .link-section {
+            margin-bottom: 30px;
+        }
+        
+        .link-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .link-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #f9f9f9;
+            color: #333;
+        }
+        
+        .copy-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #45a049;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .btn-new-vistoria {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-new-vistoria:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        @keyframes slideUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .link-container {
+                flex-direction: column;
+            }
+            
+            .copy-btn {
+                padding: 12px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function copyLinkFromModal(link) {
+    navigator.clipboard.writeText(link).then(() => {
+        const button = document.querySelector('.copy-btn');
+        const originalText = button.innerHTML;
+        button.innerHTML = '✅ Copiado!';
+        button.style.background = '#2E7D32';
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.style.background = '#4CAF50';
+        }, 2000);
+    });
+}
+
+function closeSuccessModal() {
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        modal.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+function startNewVistoria() {
+    try {
+        // Fechar modal primeiro
+        const modal = document.getElementById('success-modal');
+        if (modal) {
+            modal.style.animation = 'fadeOut 0.3s ease-out';
+            setTimeout(() => {
+                modal.remove();
+                
+                // Reset imediato para mobile
+                resetToInitialState();
+            }, 100); // Reduzido para ser mais rápido
+        } else {
+            // Se não tem modal, reset direto
+            resetToInitialState();
+        }
+        
+    } catch (error) {
+        console.error('Erro em startNewVistoria:', error);
+        // Em caso de erro, reset forçado
+        resetToInitialState();
+    }
+}
+
+// Nova função para reset otimizado mobile
+function resetToInitialState() {
+    try {
+        // Limpar formulário completamente
+        clearForm();
+        
+        // Voltar para step 1 imediatamente
+        showStep(1);
+        
+        // Ocultar loading se estiver ativo
+        hideLoading();
+        
+        // Limpar qualquer modal ativo
+        const modals = document.querySelectorAll('.modal, #success-modal');
+        modals.forEach(modal => {
+            if (modal && modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        });
+        
+        // Remover classes de estados ativos
+        document.querySelectorAll('.has-image').forEach(el => {
+            el.classList.remove('has-image');
+        });
+        
+        // Reinicializar previews de foto
+        const previews = document.querySelectorAll('.photo-preview');
+        previews.forEach(preview => {
+            resetPhotoPreview(preview);
+        });
+        
+        // Scroll para o topo
+        if (window.scrollTo) {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        } else {
+            // Fallback para mobile antigo
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+        
+        // Feedback visual de reset
+        notifications.success('Sucesso', 'Sistema reiniciado! Pronto para nova vistoria.');
+        
+        // Forçar re-render dos ícones
+        setTimeout(() => {
+            loadLucideIcons();
+        }, 200);
+        
+        // Garantir que voltou ao estado inicial (fallback de segurança)
+        setTimeout(() => {
+            if (AppState.currentStep !== 1) {
+                console.warn('Estado não resetado corretamente, forçando reset...');
+                AppState.currentStep = 1;
+                showStep(1);
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Erro em resetToInitialState:', error);
+        // Em último caso, recarregar página
+        window.location.reload();
     }
 }
 
@@ -751,25 +1811,37 @@ document.head.appendChild(style);
 // SISTEMA DE NAVEGAÇÃO POR PASSOS
 // ========================
 
-// Inicializar navegação por passos
+// Inicializar navegação por passos com otimização mobile
 function initStepNavigation() {
     const btnProximo = document.getElementById('btn-proximo');
     const btnAnterior = document.getElementById('btn-anterior');
     
+    // Usar throttle para evitar cliques duplos em navegação
+    const throttledNext = PerformanceUtils.throttle(nextStep, 300);
+    const throttledPrevious = PerformanceUtils.throttle(previousStep, 300);
+    
     if (btnProximo) {
-        btnProximo.addEventListener('click', nextStep);
+        PerformanceUtils.addTouchOptimizedEvent(btnProximo, 'click', throttledNext);
     }
     
     if (btnAnterior) {
-        btnAnterior.addEventListener('click', previousStep);
+        PerformanceUtils.addTouchOptimizedEvent(btnAnterior, 'click', throttledPrevious);
     }
     
     // Mostrar primeiro passo
     showStep(1);
 }
 
-// Mostrar passo específico
+// Mostrar passo específico - otimizado para mobile
 function showStep(stepNumber) {
+    // Scroll para o topo imediatamente (importante para mobile)
+    if (window.scrollTo) {
+        window.scrollTo(0, 0);
+    } else {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+    
     // Ocultar todos os passos
     for (let i = 1; i <= AppState.totalSteps; i++) {
         const step = document.getElementById(`step-${i}`);
@@ -793,6 +1865,12 @@ function showStep(stepNumber) {
     const currentStep = document.getElementById(`step-${stepNumber}`);
     if (currentStep) {
         currentStep.classList.remove('hidden');
+        
+        // Forçar re-render para mobile
+        currentStep.style.opacity = '0';
+        setTimeout(() => {
+            currentStep.style.opacity = '1';
+        }, 50);
     }
     
     // Atualizar estado
@@ -846,7 +1924,6 @@ function updateNavigationButtons() {
     
     // Botão Próximo e Ações Finais
     if (AppState.currentStep === AppState.totalSteps) {
-        console.log('Último passo - transformando botão próximo em finalizar');
         // Último passo - transformar botão próximo em finalizar
         if (btnProximo) {
             btnProximo.innerHTML = '<span>Finalizar Vistoria</span>';
@@ -873,7 +1950,6 @@ function updateNavigationButtons() {
         if (finalActions) finalActions.classList.add('hidden');
         if (stepNavigation) stepNavigation.classList.remove('hidden');
     } else {
-        console.log('Passo intermediário - restaurando botão próximo');
         // Passos intermediários - restaurar botão próximo normal
         if (btnProximo) {
             btnProximo.innerHTML = '<span>Avançar</span><span class="button-icon">→</span>';
@@ -1005,6 +2081,18 @@ function populateReviewData() {
     document.getElementById('review-modelo').textContent = document.getElementById('modelo').value || '-';
     document.getElementById('review-cor').textContent = document.getElementById('cor').value || '-';
     document.getElementById('review-ano').textContent = document.getElementById('ano').value || '-';
+    
+    // Novos campos
+    const kmElement = document.getElementById('review-km');
+    if (kmElement) {
+        kmElement.textContent = document.getElementById('km_rodado').value || '-';
+    }
+    
+    const docElement = document.getElementById('review-documento');
+    if (docElement) {
+        const docFile = AppState.documentFile;
+        docElement.textContent = docFile ? `📄 ${docFile.name}` : 'Nenhum documento anexado';
+    }
     
     // Questionário
     const questionsContainer = document.getElementById('review-questions');
