@@ -991,9 +991,11 @@ async function handleFormSubmit(event) {
         const result = await saveVistoria(formData);
         
         if (result.success) {
-            // Voltar para a tela inicial imediatamente
-            clearForm();
-            showStep(1);
+            // Criar link da assinatura
+            const link = `${window.location.origin}/assinatura/${result.token}`;
+            
+            // Mostrar modal de sucesso SEM o link (vem do finalizar vistoria)
+            showSuccessModal(result, link, formData, false);
         } else {
             throw new Error(result.message || 'Erro desconhecido');
         }
@@ -1701,23 +1703,40 @@ function hideLoading() {
     }
 }
 
-function showSuccessModal(result, link, vistoriaData) {
+function showSuccessModal(result, link, vistoriaData, showLink = true) {
+    // Extrair token do link para usar no PDF
+    const token = link.split('/').pop();
+    
+    // Criar seção do link apenas se showLink for true
+    const linkSection = showLink ? `
+        <div class="link-section">
+            <p class="modal-subtitle">Envie o link abaixo para o cliente assinar.</p>
+            <div class="link-container">
+                <input type="text" value="${link}" readonly class="link-input" id="modal-link-input">
+                <button onclick="copyLinkFromModal('${link}')" class="copy-btn">📋 Copiar</button>
+            </div>
+        </div>
+    ` : '';
+    
+    // Título e subtítulo diferentes baseados no contexto
+    const title = showLink ? "Vistoria gerada!" : "Vistoria finalizada!";
+    const subtitle = showLink ? "" : "A vistoria foi finalizada com sucesso.";
+    
     // Criar modal simplificado
     const modalHTML = `
         <div id="success-modal" class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-body">
-                    <h2 class="modal-title">Vistoria gerada!</h2>
-                    <p class="modal-subtitle">Envie o link abaixo para o cliente assinar.</p>
+                    <h2 class="modal-title">${title}</h2>
+                    ${subtitle ? `<p class="modal-subtitle">${subtitle}</p>` : ''}
                     
-                    <div class="link-section">
-                        <div class="link-container">
-                            <input type="text" value="${link}" readonly class="link-input" id="modal-link-input">
-                            <button onclick="copyLinkFromModal('${link}')" class="copy-btn">📋 Copiar</button>
-                        </div>
-                    </div>
+                    ${linkSection}
                     
                     <div class="modal-actions">
+                        <button onclick="downloadPDF('${token}')" class="btn-download-pdf" 
+                                ontouchstart="this.style.transform='scale(0.95)'" 
+                                ontouchend="this.style.transform='scale(1)'"
+                                data-mobile-optimized="true">📄 Baixar PDF</button>
                         <button onclick="startNewVistoria()" class="btn-new-vistoria" 
                                 ontouchstart="this.style.transform='scale(0.95)'" 
                                 ontouchend="this.style.transform='scale(1)'"
@@ -1878,6 +1897,33 @@ function showSuccessModal(result, link, vistoriaData) {
         .modal-actions {
             display: flex;
             justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-download-pdf {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn-download-pdf:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.3);
         }
         
         .btn-new-vistoria {
@@ -1890,6 +1936,13 @@ function showSuccessModal(result, link, vistoriaData) {
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .btn-new-vistoria:hover {
@@ -1943,6 +1996,19 @@ function showSuccessModal(result, link, vistoriaData) {
                 width: calc(100% - 20px);
                 max-height: 90vh;
                 overflow-y: auto;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn-download-pdf,
+            .btn-new-vistoria {
+                width: 100%;
+                padding: 18px 24px;
+                font-size: 16px;
+                min-height: 52px;
             }
         }
     `;
@@ -2172,8 +2238,20 @@ function closeSuccessModal() {
 
 function startNewVistoria() {
     try {
-        // Recarregar a página para voltar ao estado inicial
-        window.location.reload();
+        // Fechar o modal de sucesso primeiro
+        closeSuccessModal();
+        
+        // Aguardar um pouco para que o modal feche
+        setTimeout(() => {
+            // Limpar formulário completamente
+            clearForm();
+            
+            // Voltar para step 1
+            showStep(1);
+            
+            // Garantir que a página esteja no topo
+            window.scrollTo(0, 0);
+        }, 300);
         
     } catch (error) {
         console.error('Erro em startNewVistoria:', error);
@@ -2866,6 +2944,85 @@ function addTouchSupport(carousel) {
     
     // Definir cursor padrão
     carousel.style.cursor = 'grab';
+}
+
+// Função para download do PDF
+async function downloadPDF(token) {
+    try {
+        // Mostrar loading no botão
+        const btn = document.querySelector('.btn-download-pdf');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Gerando PDF...';
+        btn.disabled = true;
+        
+        // Fazer requisição para gerar/baixar PDF
+        const response = await fetch(`/api/gerar_pdf/${token}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/pdf'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        // Obter o blob do PDF
+        const blob = await response.blob();
+        
+        // Criar URL temporária e forçar download
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `vistoria_${token}.pdf`;
+        
+        // Adicionar ao DOM, clicar e remover
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpar URL temporária
+        window.URL.revokeObjectURL(url);
+        
+        // Feedback de sucesso
+        btn.innerHTML = '✅ PDF Baixado!';
+        btn.style.background = '#4CAF50';
+        
+        // Restaurar botão após 2 segundos
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '#FF9800';
+            btn.disabled = false;
+        }, 2000);
+        
+        // Toast de sucesso se disponível
+        if (typeof showToast === 'function') {
+            showToast('Sucesso', 'PDF gerado e baixado com sucesso!', 'success', 3000);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao baixar PDF:', error);
+        
+        // Restaurar botão e mostrar erro
+        const btn = document.querySelector('.btn-download-pdf');
+        if (btn) {
+            btn.innerHTML = '❌ Erro no PDF';
+            btn.style.background = '#f44336';
+            btn.disabled = false;
+            
+            setTimeout(() => {
+                btn.innerHTML = '📄 Baixar PDF';
+                btn.style.background = '#FF9800';
+            }, 3000);
+        }
+        
+        // Toast de erro se disponível
+        if (typeof showToast === 'function') {
+            showToast('Erro', 'Erro ao gerar PDF. Tente novamente.', 'error', 3000);
+        } else {
+            alert('Erro ao gerar PDF. Tente novamente.');
+        }
+    }
 }
 
 // Função para abrir modal de visualização de foto
