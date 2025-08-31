@@ -1,4 +1,4 @@
-// Inicialização da aplicação
+﻿// Inicialização da aplicação
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM carregado, inicializando aplicação...');
     
@@ -60,8 +60,22 @@ const PerformanceUtils = {
     
     // Verificar se é dispositivo móvel
     isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-               (window.innerWidth <= 768);
+        // Verificação mais robusta para dispositivos móveis
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        
+        // Verificar user agent
+        const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+        const isMobileUA = mobileRegex.test(userAgent);
+        
+        // Verificar características do dispositivo
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isSmallScreen = window.innerWidth <= 768;
+        const isPortrait = window.innerHeight > window.innerWidth;
+        
+        // Verificar se suporta vibração (comum em mobile)
+        const hasVibration = 'vibrate' in navigator;
+        
+        return isMobileUA || (hasTouch && (isSmallScreen || hasVibration));
     },
     
     // Otimizar eventos de toque
@@ -303,8 +317,9 @@ function resetDocumentPreview(preview) {
 }
 
 // Remover documento selecionado
-function removeDocument() {
+function removeDocument(showNotification = true) {
     console.log('🗑️ Removendo documento...');
+    console.trace('🔍 STACK TRACE: removeDocument() chamado de:');
     
     const documentInput = document.getElementById('documento_nota_fiscal');
     const documentPreview = document.getElementById('preview_documento');
@@ -328,7 +343,10 @@ function removeDocument() {
     
     console.log('✅ AppState limpo:', AppState.documentFile);
     
-    notifications.info('Documento removido', 'Nenhum documento selecionado.');
+    // Só mostrar notificação se solicitado (não durante clearForm)
+    if (showNotification) {
+        notifications.info('Documento removido', 'Nenhum documento selecionado.');
+    }
 }
 
 // Handler para upload de fotos
@@ -653,8 +671,8 @@ async function generateSignatureLink() {
         
         showLoading();
         
-        // Coletar dados da vistoria atual (sem assinatura)
-        const vistoriaData = collectVistoriaData();
+        // Coletar dados do formulário (igual à etapa 5)
+        const vistoriaData = await collectFormData();
         
         // Enviar para o servidor para gerar token e salvar vistoria
         const response = await fetch('/api/gerar_link_assinatura', {
@@ -686,6 +704,11 @@ async function generateSignatureLink() {
 
 // Coletar dados da vistoria para envio (sem assinatura)
 function collectVistoriaData() {
+    // PRIMEIRA COISA: Salvar uma cópia do documento ANTES de qualquer processamento
+    const savedDocumentData = AppState.documentData ? {...AppState.documentData} : null;
+    const savedDocumentInPhotos = AppState.photos && AppState.photos['documento_nota_fiscal'] ? {...AppState.photos['documento_nota_fiscal']} : null;
+    console.log('💾 BACKUP: Documento salvo antes do processamento:', savedDocumentData || savedDocumentInPhotos);
+    
     const form = document.getElementById('form-vistoria');
     
     const data = {
@@ -740,7 +763,17 @@ function collectVistoriaData() {
                     data.veiculo[name] = value;
                 } else {
                     if (name.startsWith("marca_pneu_")) { 
-                        data.pneus[name] = value; 
+                        // Mapear nomes abreviados para nomes completos do banco
+                        const pneuMap = {
+                            'marca_pneu_de': 'marca_pneu_dianteiro_esquerdo',
+                            'marca_pneu_dd': 'marca_pneu_dianteiro_direito',
+                            'marca_pneu_te': 'marca_pneu_traseiro_esquerdo',
+                            'marca_pneu_td': 'marca_pneu_traseiro_direito'
+                        };
+                        const mappedName = pneuMap[name] || name;
+                        data.pneus[mappedName] = value; 
+                        console.log(`🔍 Mapeando pneu: ${name} -> ${mappedName} = ${value}`);
+                        console.log(`🔍 Estado atual data.pneus:`, data.pneus);
                     } else { 
                         data[name] = value; 
                     }
@@ -758,6 +791,70 @@ function collectVistoriaData() {
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
     console.log('Dados coletados para link:', data);
+    
+    console.log('🔍 DEBUG: Dados coletados antes do processamento:', data);
+    console.log('🔍 DEBUG: data.pneus antes do processamento:', data.pneus);
+
+    // CORREÇÃO: Converter fotos do formato object para array para processamento no backend
+    const photos_array = [];
+    for (const [key, value] of Object.entries(data.fotos)) {
+        photos_array.push({
+            category: key,
+            name: key,
+            url: value.url,
+            size: value.file?.size,
+            type: value.file?.type || 'image/jpeg'
+        });
+    }
+    
+    // Verificar se há documento e adicioná-lo
+    console.log('🔍 DEBUG: AppState completo:', AppState);
+    console.log('🔍 DEBUG: AppState.documentData:', AppState.documentData);
+    console.log('🔍 DEBUG: AppState.photos:', AppState.photos);
+    console.log('🔍 DEBUG: AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
+    
+    // USAR O DOCUMENTO SALVO em vez do AppState atual (que pode ter sido limpo)
+    const documentData = savedDocumentData || savedDocumentInPhotos || AppState.documentData || AppState.photos['documento_nota_fiscal'];
+    console.log('🔍 DEBUG: AppState.documentData:', AppState.documentData);
+    console.log('🔍 DEBUG: AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
+    console.log('🔍 DEBUG: documentData encontrado:', documentData);
+    
+    if (documentData) {
+        console.log('📄 Adicionando documento ao array de fotos para processamento...');
+        photos_array.push({
+            category: 'documento_nota_fiscal',
+            name: 'documento_nota_fiscal',
+            url: documentData.url,
+            size: documentData.fileSize || documentData.file?.size,
+            type: documentData.fileType || documentData.file?.type || 'application/pdf'
+        });
+        console.log('📄 Documento adicionado ao array de fotos');
+    } else {
+        console.log('❌ Nenhum documento encontrado para adicionar');
+    }
+    
+    data.photos = photos_array;
+    console.log(`📸 Total de fotos para processamento: ${photos_array.length} (incluindo documento se houver)`);
+    
+    // CORREÇÃO FINAL: Garantir que o mapeamento dos pneus está correto
+    console.log('🔍 DEBUG: data.pneus ANTES do mapeamento final:', data.pneus);
+    const pneuMapFinal = {
+        'marca_pneu_de': 'marca_pneu_dianteiro_esquerdo',
+        'marca_pneu_dd': 'marca_pneu_dianteiro_direito', 
+        'marca_pneu_te': 'marca_pneu_traseiro_esquerdo',
+        'marca_pneu_td': 'marca_pneu_traseiro_direito'
+    };
+    
+    // Criar novo objeto pneus com nomes corretos
+    const pneusMapeados = {};
+    for (const [key, value] of Object.entries(data.pneus || {})) {
+        const newKey = pneuMapFinal[key] || key;
+        pneusMapeados[newKey] = value;
+        console.log(`🔧 Mapeamento final: ${key} -> ${newKey} = ${value}`);
+    }
+    data.pneus = pneusMapeados;
+    console.log('🔍 DEBUG: data.pneus DEPOIS do mapeamento final:', data.pneus);
+    
     return data;
 }
 
@@ -894,12 +991,9 @@ async function handleFormSubmit(event) {
         const result = await saveVistoria(formData);
         
         if (result.success) {
-            notifications.success('Sucesso', 'Vistoria e assinatura salvadas com sucesso!');
-            
             // Voltar para a tela inicial imediatamente
             clearForm();
             showStep(1);
-            notifications.info('Info', 'Sistema reiniciado. Você pode iniciar uma nova vistoria.');
         } else {
             throw new Error(result.message || 'Erro desconhecido');
         }
@@ -1018,6 +1112,11 @@ function clearValidationErrors() {
 
 // Coletar dados do formulário
 async function collectFormData() {
+    // PRIMEIRA COISA: Salvar uma cópia do documento ANTES de qualquer processamento
+    const savedDocumentData = AppState.documentData ? {...AppState.documentData} : null;
+    const savedDocumentInPhotos = AppState.photos && AppState.photos['documento_nota_fiscal'] ? {...AppState.photos['documento_nota_fiscal']} : null;
+    console.log('💾 BACKUP: Documento salvo antes do processamento:', savedDocumentData || savedDocumentInPhotos);
+    
     const form = document.getElementById('form-vistoria');
     const formData = new FormData(form);
     
@@ -1073,7 +1172,16 @@ async function collectFormData() {
                     data.veiculo[name] = value;
                 } else {
                     if (name.startsWith("marca_pneu_")) { 
-                        data.pneus[name] = value; 
+                        // Mapear nomes abreviados para nomes completos do banco
+                        const pneuMap = {
+                            'marca_pneu_de': 'marca_pneu_dianteiro_esquerdo',
+                            'marca_pneu_dd': 'marca_pneu_dianteiro_direito',
+                            'marca_pneu_te': 'marca_pneu_traseiro_esquerdo',
+                            'marca_pneu_td': 'marca_pneu_traseiro_direito'
+                        };
+                        const mappedName = pneuMap[name] || name;
+                        data.pneus[mappedName] = value; 
+                        console.log(`🔍 Mapeando pneu: ${name} -> ${mappedName} = ${value}`);
                     } else { 
                         data[name] = value; 
                     }
@@ -1091,8 +1199,20 @@ async function collectFormData() {
     if (!data.nome_conferente) data.nome_conferente = '';
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
-    // Adicionar documento se existir (priorizar AppState.documentData, depois verificar outros locais)
-    const documentData = AppState.documentData || 
+    // DEBUG: Log dos dados dos pneus coletados
+    console.log('🔍 DEBUG - Dados dos pneus coletados:', data.pneus);
+    
+    // Adicionar documento se existir (múltiplas fontes de verificação)
+    console.log('🔍 DOCUMENTO DEBUG - Verificando fontes:');
+    console.log('   - AppState.documentData:', AppState.documentData);
+    console.log('   - AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
+    console.log('   - AppState.documentFile:', AppState.documentFile);
+    console.log('   - savedDocumentData:', savedDocumentData);
+    console.log('   - savedDocumentInPhotos:', savedDocumentInPhotos);
+    
+    const documentData = savedDocumentData || 
+                         savedDocumentInPhotos ||
+                         AppState.documentData || 
                          AppState.photos['documento_nota_fiscal'] || 
                          (AppState.documentFile ? {
         url: null, // Será convertido depois
@@ -1102,16 +1222,19 @@ async function collectFormData() {
         type: AppState.documentFile.type
     } : null);
     
-    if (documentData && documentData.file) {
-        // Se o documento tem URL (base64), usar ela
+    console.log('📄 DOCUMENTO FINAL ENCONTRADO:', documentData);
+    
+    if (documentData) {
+        // Se o documento já tem URL (base64), usar ela
         if (documentData.url) {
             data.documento = {
                 file: documentData.url, // Base64
-                name: documentData.name || documentData.file.name,
-                size: documentData.size || documentData.file.size,
-                type: documentData.type || documentData.file.type
+                name: documentData.name || documentData.file?.name || 'documento_nota_fiscal',
+                size: documentData.size || documentData.file?.size || 0,
+                type: documentData.type || documentData.file?.type || 'application/pdf'
             };
-        } else {
+            console.log('📄 Documento usando URL existente:', data.documento.name);
+        } else if (documentData.file) {
             // Se não tem URL, converter para base64
             const reader = new FileReader();
             const base64Promise = new Promise((resolve) => {
@@ -1132,16 +1255,91 @@ async function collectFormData() {
                 console.error('❌ Erro ao converter documento para base64:', error);
                 data.documento = null;
             }
+        } else {
+            console.log('⚠️ Documento encontrado mas sem file nem URL');
+            data.documento = null;
         }
+    } else {
+        console.log('❌ Nenhum documento encontrado em nenhuma fonte');
+        data.documento = null;
     }
     
     console.log('Dados coletados:', data);
+    
+    // CORREÇÃO: Converter fotos do AppState.photos para array e incluir documento
+    const photos_array = [];
+    
+    // Converter fotos do AppState.photos
+    for (const [key, value] of Object.entries(data.fotos)) {
+        photos_array.push({
+            category: key,
+            name: key,
+            url: value.url,
+            size: value.file?.size,
+            type: value.file?.type || 'image/jpeg'
+        });
+    }
+    
+    // Adicionar documento se existir (verificação melhorada)
+    if (data.documento) {
+        console.log('📄 DOCUMENTO CONFIRMADO - Adicionando ao array de fotos para processamento...');
+        console.log('🔍 DEBUG: Dados do documento para envio:', data.documento);
+        const documentoParaEnvio = {
+            category: 'documento_nota_fiscal',
+            name: 'documento_nota_fiscal',
+            url: data.documento.file, // Base64 do documento
+            size: data.documento.size,
+            type: data.documento.type
+        };
+        console.log('🔍 DEBUG: Documento formatado para envio:', documentoParaEnvio);
+        photos_array.push(documentoParaEnvio);
+        console.log('✅ Documento adicionado ao array! Total de itens:', photos_array.length);
+    } else {
+        console.log('❌ DOCUMENTO NÃO ENCONTRADO - não será incluído no array de fotos');
+        console.log('🔍 DEBUG: Estado atual do data.documento:', data.documento);
+    }
+    
+    data.photos = photos_array;
+    console.log(`📸 FINAL: Total de fotos para processamento: ${photos_array.length}`);
+    console.log('📋 FINAL: Resumo do array de fotos:');
+    photos_array.forEach((foto, index) => {
+        console.log(`   ${index + 1}. categoria='${foto.category}', nome='${foto.name}', tipo='${foto.type}'`);
+    });
+    console.log('🎯 FINAL: Documento presente no array?', photos_array.some(f => f.category === 'documento_nota_fiscal') ? 'SIM' : 'NÃO');
+    
     return data;
 }
 
 // Salvar vistoria na API
 async function saveVistoria(data) {
     try {
+        // Debug: verificar o tamanho dos dados e se o documento está presente
+        const jsonString = JSON.stringify(data);
+        const sizeInMB = (new Blob([jsonString]).size / 1024 / 1024).toFixed(2);
+        console.log(`📊 DEBUG: Tamanho do payload: ${sizeInMB}MB`);
+        console.log(`📊 DEBUG: Documento presente nos dados: ${data.documento ? 'SIM' : 'NÃO'}`);
+        console.log(`📊 DEBUG: Total de fotos: ${data.photos ? data.photos.length : 0}`);
+        if (data.photos) {
+            data.photos.forEach((foto, index) => {
+                console.log(`📊 DEBUG: Foto ${index + 1}: category=${foto.category}, type=${foto.type}`);
+            });
+        }
+        
+        // Verificar se está dentro do limite de tamanho (típicamente 100MB para requisições HTTP)
+        if (sizeInMB > 50) {
+            console.warn(`⚠️ ATENÇÃO: Payload muito grande (${sizeInMB}MB)! Isso pode causar falha na transmissão.`);
+        }
+        
+        console.log('🚀 Enviando requisição para /api/salvar_vistoria_completa...');
+        console.log('📡 Dados que serão enviados:', {
+            veiculo: data.veiculo,
+            questionario: Object.keys(data.questionario).length + ' itens',
+            pneus: Object.keys(data.pneus).length + ' itens', 
+            photos: data.photos ? data.photos.length + ' fotos' : 'nenhuma',
+            documento: data.documento ? 'presente' : 'ausente',
+            assinatura: data.assinatura ? 'presente' : 'ausente'
+        });
+        
         const response = await fetch('/api/salvar_vistoria_completa', {
             method: 'POST',
             headers: {
@@ -1150,8 +1348,17 @@ async function saveVistoria(data) {
             body: JSON.stringify(data)
         });
         
+        console.log('📡 Resposta recebida:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+        
         if (!response.ok) {
-            const errorData = await response.json();
+            console.error('❌ Resposta HTTP não OK:', response.status, response.statusText);
+            const errorData = await response.json().catch(() => ({ message: 'Erro ao parsear resposta JSON' }));
+            console.error('❌ Dados do erro:', errorData);
             throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
         }
         
@@ -1178,6 +1385,9 @@ async function saveVistoria(data) {
 
 // Limpar formulário
 function clearForm() {
+    console.log('🧹 CLEARFORM: Iniciando limpeza do formulário...');
+    console.trace('🔍 STACK TRACE: clearForm() chamado de:');
+    
     // Limpar campos do formulário
     const form = document.getElementById('form-vistoria');
     if (form) {
@@ -1205,8 +1415,8 @@ function clearForm() {
     AppState.documentFile = null;  // Limpar documento
     AppState.documentData = null;  // Limpar dados do documento
     
-    // Limpar preview do documento
-    removeDocument();
+    // Limpar preview do documento (sem notificação durante clearForm)
+    removeDocument(false);
     
     // Resetar data/hora
     initDateTime();
@@ -1518,6 +1728,18 @@ function showSuccessModal(result, link, vistoriaData) {
     // Adicionar modal ao DOM
     document.body.insertAdjacentHTML('beforeend', modalHTML);
     
+    // Prevenir scroll do body e interferências
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    
+    // Garantir que o modal seja o elemento mais alto
+    const modal = document.getElementById('success-modal');
+    if (modal) {
+        modal.style.zIndex = '99999';
+        modal.style.position = 'fixed';
+    }
+    
     // Otimização adicional para mobile - garantir que o botão funcione
     setTimeout(() => {
         const newVistoriaBtn = document.querySelector('.btn-new-vistoria');
@@ -1536,6 +1758,10 @@ function showSuccessModal(result, link, vistoriaData) {
     // Adicionar estilos CSS simplificados
     const style = document.createElement('style');
     style.textContent = `
+        #success-modal {
+            pointer-events: auto !important;
+        }
+        
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -1546,8 +1772,10 @@ function showSuccessModal(result, link, vistoriaData) {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 9999;
             animation: fadeIn 0.3s ease-out;
+            overflow: hidden;
+            pointer-events: auto;
         }
         
         .modal-content {
@@ -1557,6 +1785,11 @@ function showSuccessModal(result, link, vistoriaData) {
             max-width: 500px;
             width: 90%;
             animation: slideUp 0.3s ease-out;
+            position: relative;
+            z-index: 10000;
+            max-height: 90vh;
+            overflow-y: auto;
+            pointer-events: auto;
         }
         
         .modal-body {
@@ -1606,11 +1839,37 @@ function showSuccessModal(result, link, vistoriaData) {
             cursor: pointer;
             font-weight: bold;
             white-space: nowrap;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            min-height: 48px; /* Tamanho mínimo recomendado para toque */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .copy-btn:hover {
             background: #45a049;
+        }
+        
+        .copy-btn:active {
+            transform: scale(0.95);
+            background: #3d8b40;
+        }
+        
+        /* Melhorias específicas para mobile */
+        @media (hover: none) and (pointer: coarse) {
+            .copy-btn {
+                padding: 18px 24px;
+                font-size: 16px;
+                min-width: 120px;
+            }
+            
+            .copy-btn:active {
+                background: #3d8b40;
+                transform: scale(0.98);
+            }
         }
         
         .modal-actions {
@@ -1660,10 +1919,27 @@ function showSuccessModal(result, link, vistoriaData) {
         @media (max-width: 600px) {
             .link-container {
                 flex-direction: column;
+                gap: 15px;
             }
             
             .copy-btn {
-                padding: 12px;
+                padding: 18px;
+                width: 100%;
+                font-size: 16px;
+                min-height: 52px;
+            }
+            
+            .link-text {
+                font-size: 12px;
+                line-height: 1.4;
+                padding: 15px;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                width: calc(100% - 20px);
+                max-height: 90vh;
+                overflow-y: auto;
             }
         }
     `;
@@ -1671,49 +1947,235 @@ function showSuccessModal(result, link, vistoriaData) {
 }
 
 function copyLinkFromModal(link) {
-    navigator.clipboard.writeText(link).then(() => {
-        const button = document.querySelector('.copy-btn');
+    // Função auxiliar para copiar texto com fallback para mobile
+    async function copyToClipboard(text) {
+        try {
+            // Método 1: Clipboard API moderna (funciona em HTTPS e mobile moderno)
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+            
+            // Método 2: Fallback para dispositivos móveis e HTTP
+            if (navigator.share && PerformanceUtils.isMobile()) {
+                await navigator.share({
+                    title: 'Link da Vistoria',
+                    text: 'Link para assinatura da vistoria:',
+                    url: text
+                });
+                return true;
+            }
+            
+            // Método 3: Fallback clássico usando textarea
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.top = '-9999px';
+            textArea.style.left = '-9999px';
+            textArea.style.opacity = '0';
+            textArea.style.zIndex = '-1';
+            document.body.appendChild(textArea);
+            
+            // Para mobile, precisamos focar antes de selecionar
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, 99999); // Para mobile
+            
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            return successful;
+            
+        } catch (error) {
+            console.error('Erro ao copiar:', error);
+            return false;
+        }
+    }
+    
+    // Executar a cópia
+    copyToClipboard(link).then(success => {
+        // Encontrar o botão dentro do modal atual
+        const modal = document.getElementById('success-modal');
+        const button = modal ? modal.querySelector('.copy-btn') : document.querySelector('.copy-btn');
+        
+        if (!button) return;
+        
         const originalText = button.innerHTML;
-        button.innerHTML = '✅ Copiado!';
-        button.style.background = '#2E7D32';
+        const originalBackground = button.style.background || '#4CAF50';
+        
+        if (success) {
+            button.innerHTML = '✅ Copiado!';
+            button.style.background = '#2E7D32';
+            
+            // Feedback adicional para mobile
+            if (PerformanceUtils.isMobile()) {
+                // Vibração se disponível
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+                
+                // Toast notification
+                showToast('Sucesso', 'Link copiado com sucesso!', 'success', 2000);
+            }
+            
+            // Manter o modal estável
+            if (modal) {
+                modal.style.zIndex = '9999';
+                modal.style.position = 'fixed';
+            }
+            
+        } else {
+            button.innerHTML = '❌ Erro ao copiar';
+            button.style.background = '#d32f2f';
+            
+            // Aguardar um pouco antes de mostrar modal manual para evitar conflito
+            setTimeout(() => {
+                showLinkForManualCopy(link);
+            }, 500);
+        }
+        
+        // Restaurar botão após 3 segundos
         setTimeout(() => {
-            button.innerHTML = originalText;
-            button.style.background = '#4CAF50';
-        }, 2000);
+            if (button && button.parentElement) { // Verificar se ainda existe
+                button.innerHTML = originalText;
+                button.style.background = originalBackground;
+            }
+        }, 3000);
+    }).catch(error => {
+        console.error('Erro na cópia:', error);
+        
+        const button = document.querySelector('.copy-btn');
+        if (button) {
+            button.innerHTML = '❌ Erro';
+            button.style.background = '#d32f2f';
+            
+            setTimeout(() => {
+                showLinkForManualCopy(link);
+            }, 500);
+        }
+    });
+}
+
+// Função para mostrar link para cópia manual quando automática falha
+function showLinkForManualCopy(link) {
+    // Remover modal anterior se existir
+    const existingModal = document.getElementById('manual-copy-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'manual-copy-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 15000;
+        padding: 20px;
+        box-sizing: border-box;
+        animation: fadeIn 0.3s ease-out;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 90%;
+            width: 450px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease-out;
+        ">
+            <h3 style="margin: 0 0 15px 0; color: #333;">📋 Copiar Link Manualmente</h3>
+            <p style="color: #666; margin-bottom: 20px;">Toque no campo abaixo para selecionar todo o link:</p>
+            <input type="text" value="${link}" readonly style="
+                width: 100%;
+                padding: 15px;
+                margin: 10px 0 20px 0;
+                border: 2px solid #4CAF50;
+                border-radius: 8px;
+                font-size: 14px;
+                text-align: center;
+                background: #f8f8f8;
+                box-sizing: border-box;
+            " onclick="this.select(); this.setSelectionRange(0, 99999);" ontouchstart="this.select(); this.setSelectionRange(0, 99999);">
+            <button onclick="document.getElementById('manual-copy-modal').remove()" style="
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                min-height: 48px;
+                min-width: 120px;
+            ">✓ Fechar</button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Selecionar automaticamente o texto do input
+    setTimeout(() => {
+        const input = modal.querySelector('input');
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, 99999);
+    }, 100);
+    
+    // Fechar modal clicando fora
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
     });
 }
 
 function closeSuccessModal() {
     const modal = document.getElementById('success-modal');
     if (modal) {
+        // Remover qualquer modal manual que possa estar aberto
+        const manualModal = document.getElementById('manual-copy-modal');
+        if (manualModal) {
+            manualModal.remove();
+        }
+        
         modal.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => {
-            modal.remove();
+            if (modal.parentElement) {
+                modal.remove();
+            }
+            
+            // Limpar qualquer interferência de z-index
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            
+            // Restaurar scroll se necessário
+            const htmlElement = document.documentElement;
+            htmlElement.style.overflow = '';
+            htmlElement.style.position = '';
+            
         }, 300);
     }
 }
 
 function startNewVistoria() {
     try {
-        // Fechar modal primeiro
-        const modal = document.getElementById('success-modal');
-        if (modal) {
-            modal.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => {
-                modal.remove();
-                
-                // Reset imediato para mobile
-                resetToInitialState();
-            }, 100); // Reduzido para ser mais rápido
-        } else {
-            // Se não tem modal, reset direto
-            resetToInitialState();
-        }
+        // Recarregar a página para voltar ao estado inicial
+        window.location.reload();
         
     } catch (error) {
         console.error('Erro em startNewVistoria:', error);
-        // Em caso de erro, reset forçado
-        resetToInitialState();
+        // Em caso de erro, tentar reload forçado
+        window.location.href = window.location.href;
     }
 }
 
@@ -1759,9 +2221,6 @@ function resetToInitialState() {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
         }
-        
-        // Feedback visual de reset
-        notifications.success('Sucesso', 'Sistema reiniciado! Pronto para nova vistoria.');
         
         // Forçar re-render dos ícones
         setTimeout(() => {
@@ -1952,7 +2411,7 @@ function updateNavigationButtons() {
     } else {
         // Passos intermediários - restaurar botão próximo normal
         if (btnProximo) {
-            btnProximo.innerHTML = '<span>Avançar</span><span class="button-icon">→</span>';
+            btnProximo.innerHTML = '<span>Avançar</span><span class="button-icon">&rarr;</span>';
             btnProximo.classList.remove('hidden');
             btnProximo.classList.remove('button-success');
             btnProximo.classList.add('button-primary');

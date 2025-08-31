@@ -24,7 +24,16 @@ def salvar_vistoria_completa():
             }), 400
         
         print(f"📋 Recebendo vistoria JSON: {data.get('veiculo', {}).get('placa', 'N/A')}")
-        print(f"🔍 Dados completos recebidos: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        print(f"🔍 DADOS RECEBIDOS - Chaves principais: {list(data.keys())}")
+        print(f"🔍 DADOS RECEBIDOS - Photos: {len(data.get('photos', []))} itens")
+        if data.get('photos'):
+            for i, photo in enumerate(data.get('photos', [])):
+                print(f"   Photo {i+1}: category={photo.get('category')}, name={photo.get('name')}, type={photo.get('type')}")
+        print(f"🔍 DADOS RECEBIDOS - Documento direto: {'presente' if data.get('documento') else 'ausente'}")
+        print(f"🔍 DADOS RECEBIDOS - Assinatura: {'presente' if data.get('assinatura') else 'ausente'}")
+        
+        # Log completo apenas se necessário para debug (comentado para não sobrecarregar)
+        # print(f"🔍 Dados completos recebidos: {json.dumps(data, indent=2, ensure_ascii=False)}")
         
         # Converter dados do formato frontend para backend
         dados_convertidos = {
@@ -56,17 +65,37 @@ def salvar_vistoria_completa():
         
         # Processar fotos do formato JSON
         photos_data = []
-        fotos = data.get('fotos', {})
-        for field_name, foto_data in fotos.items():
-            if foto_data and foto_data.get('url'):
-                photos_data.append({
-                    'category': field_name,
-                    'name': field_name,
-                    'url': foto_data['url'],
-                    'size': foto_data.get('size', 0),
-                    'type': foto_data.get('type', 'image/jpeg')
-                })
         
+        # PRIMEIRA PRIORIDADE: Array 'photos' (novo formato)
+        photos_array = data.get('photos', [])
+        print(f"🔍 PROCESSAMENTO: Array 'photos' contém {len(photos_array)} itens")
+        for photo in photos_array:
+            if photo and photo.get('url'):
+                photos_data.append({
+                    'category': photo.get('category'),
+                    'name': photo.get('name'),
+                    'url': photo.get('url'),
+                    'size': photo.get('size', 0),
+                    'type': photo.get('type', 'image/jpeg')
+                })
+                print(f"   ✅ Adicionada: {photo.get('category')} ({photo.get('type')})")
+        
+        # SEGUNDA PRIORIDADE: Objeto 'fotos' (formato antigo - fallback)
+        if not photos_data:  # Só se não encontrou nada no array 'photos'
+            fotos = data.get('fotos', {})
+            print(f"🔍 FALLBACK: Objeto 'fotos' contém {len(fotos)} itens")
+            for field_name, foto_data in fotos.items():
+                if foto_data and foto_data.get('url'):
+                    photos_data.append({
+                        'category': field_name,
+                        'name': field_name,
+                        'url': foto_data['url'],
+                        'size': foto_data.get('size', 0),
+                        'type': foto_data.get('type', 'image/jpeg')
+                    })
+                    print(f"   ✅ Adicionada (fallback): {field_name}")
+        
+        print(f"🔍 TOTAL FINAL: {len(photos_data)} fotos serão processadas")
         dados_convertidos['photos'] = photos_data
         
         # Processar documento se fornecido

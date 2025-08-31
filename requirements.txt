@@ -1,7 +1,30 @@
+# Sistema Ágil - Vistoria de Veículos
+# Dependências consolidadas do projeto
+
+# Flask e suas extensões
 Flask==3.0.0
+Flask-CORS==4.0.0
 Werkzeug==3.0.1
 Jinja2==3.1.2
 click==8.1.7
 blinker==1.7.0
 itsdangerous==2.1.2
 MarkupSafe==2.1.3
+
+# Banco de dados PostgreSQL
+psycopg2==2.9.9
+psycopg2-binary==2.9.9
+
+# Processamento de imagens
+Pillow==10.1.0
+
+# Utilitários
+python-dateutil==2.8.2
+python-dotenv==1.0.0
+python-decouple==3.8
+
+# Validação e serialização
+marshmallow==3.20.1
+
+# Logs estruturados
+structlog==23.2.0

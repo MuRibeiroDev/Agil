@@ -60,47 +60,23 @@ def save_document(document_data: dict, token: str) -> str:
         return ''
 
 
-def save_vistoria_complete(vistoria_data: dict, signature_info: dict = None) -> dict:
+def save_vistoria_complete(vistoria_data):
     """
-    Salvar vistoria completa no banco de dados PostgreSQL
-    
-    Args:
-        vistoria_data (dict): Dados completos da vistoria
-        signature_info (dict): Informações da assinatura (opcional)
-    
-    Returns:
-        dict: Resultado da operação
+    Salva uma vistoria completa com todas as dependências
     """
     try:
-        print(f"🔧 [VISTORIA_UTILS] Iniciando save_vistoria_complete")
+        print("🔧 [VISTORIA_UTILS] Iniciando save_vistoria_complete")
         print(f"🔍 DEBUG: Dados recebidos: {vistoria_data.keys()}")
         
-        vistoria_db = get_vistoria_db()
-        
-        if not vistoria_db:
-            raise Exception("Banco de dados não inicializado")
-        
-        print("✅ Banco de dados inicializado")
-        
-        # 0. Processar documento se existir
-        documento_path = ''
-        if 'documento' in vistoria_data and vistoria_data['documento']:
-            print(f"📄 Processando documento...")
-            # Gerar um token temporário para o documento
-            temp_token = f"TEMP_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            documento_path = save_document(vistoria_data['documento'], temp_token)
-            if documento_path:
-                # Adicionar o caminho do documento aos dados da vistoria
-                if 'veiculo' not in vistoria_data:
-                    vistoria_data['veiculo'] = {}
-                vistoria_data['veiculo']['documento_nota_fiscal'] = documento_path
-                print(f"📄 Documento salvo em: {documento_path}")
-            else:
-                print("⚠️ Falha ao salvar documento")
+        # DEBUG: Verificar especificamente os dados dos pneus
+        pneus_data = vistoria_data.get('pneus', {})
+        print(f"🔍 [VISTORIA_UTILS] Dados dos pneus recebidos: {pneus_data}")
+        print(f"🔍 [VISTORIA_UTILS] Chaves dos pneus: {list(pneus_data.keys())}")
         
         # 1. Inserir vistoria principal
         try:
             print(f"🔧 Tentando inserir vistoria com dados: {vistoria_data.keys()}")
+            vistoria_db = get_vistoria_db()
             result = vistoria_db.inserir_vistoria(vistoria_data)
             
             if not result or not isinstance(result, dict):
@@ -118,8 +94,26 @@ def save_vistoria_complete(vistoria_data: dict, signature_info: dict = None) -> 
         # 2. Processar e salvar fotos
         photos = vistoria_data.get('photos', [])
         print(f"🔍 DEBUG: Fotos recebidas: {len(photos)}")
+        
+        # DEBUG: Verificar se documento está no array de fotos
+        documento_encontrado = False
+        for i, photo in enumerate(photos):
+            category = photo.get('category')
+            name = photo.get('name')
+            photo_type = photo.get('type')
+            print(f"🔍 DEBUG: Foto {i+1}: category='{category}', name='{name}', type='{photo_type}'")
+            print(f"🔍 DEBUG: Chaves da foto: {list(photo.keys())}")
+            
+            if category == 'documento_nota_fiscal':
+                documento_encontrado = True
+                print(f"📄 Documento encontrado no array de fotos: {name}")
+        
+        if not documento_encontrado:
+            print("⚠️ ATENÇÃO: Documento não encontrado no array de fotos!")
+            print(f"🔍 DEBUG: Total de fotos recebidas: {len(photos)}")
+            print(f"🔍 DEBUG: Tipos de category encontrados: {[photo.get('category') for photo in photos]}")
+        
         if photos:
-            print(f"🔍 DEBUG: Primeira foto: {photos[0] if len(photos) > 0 else 'Nenhuma'}")
             foto_ids = process_vistoria_photos(photos, vistoria_id, vistoria_token)
             print(f"✅ {len(foto_ids)} fotos processadas")
         else:
@@ -182,7 +176,6 @@ def save_vistoria_complete(vistoria_data: dict, signature_info: dict = None) -> 
             'vistoria_id': str(vistoria_id),
             'token': vistoria_token,
             'dados_originais': vistoria_data,
-            'signature_info': signature_info,
             'created_at': datetime.now().isoformat(),
             'backup_version': '1.0'
         }

@@ -134,10 +134,10 @@ class VistoriaDatabase:
             token = self.gerar_token_unico()
             print(f"🔧 [DB] Token gerado: {token}")
             
-            # SQL de inserção - ATUALIZADO com KM e documento
+            # SQL de inserção - REMOVIDO documento_nota_fiscal
             sql = """
             INSERT INTO vistorias (
-                token, placa, modelo, cor, ano, nome_conferente, km_rodado, documento_nota_fiscal,
+                token, placa, modelo, cor, ano, nome_conferente, km_rodado,
                 ar_condicionado, antenas, tapetes, tapete_porta_malas, bateria,
                 retrovisor_direito, retrovisor_esquerdo, extintor, roda_comum, roda_especial,
                 chave_principal, chave_reserva, manual, documento, nota_fiscal,
@@ -146,7 +146,7 @@ class VistoriaDatabase:
                 marca_pneu_traseiro_esquerdo, marca_pneu_traseiro_direito,
                 token_expira_em, status
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
@@ -159,15 +159,36 @@ class VistoriaDatabase:
             questionario = dados_vistoria.get('questionario', {})
             pneus = dados_vistoria.get('pneus', {})
             
+            # DEBUG: Log dos dados dos pneus
+            print(f"🔍 [DEBUG] Dados completos dos pneus recebidos: {pneus}")
+            print(f"🔍 [DEBUG] Marca pneu DE: '{pneus.get('marca_pneu_dianteiro_esquerdo', '')}'")
+            print(f"🔍 [DEBUG] Marca pneu DD: '{pneus.get('marca_pneu_dianteiro_direito', '')}'")
+            print(f"🔍 [DEBUG] Marca pneu TE: '{pneus.get('marca_pneu_traseiro_esquerdo', '')}'")
+            print(f"🔍 [DEBUG] Marca pneu TD: '{pneus.get('marca_pneu_traseiro_direito', '')}'")
+            
+            # Validar e processar o ano
+            ano_raw = veiculo.get('ano')
+            ano_valido = None
+            if ano_raw:
+                try:
+                    ano_int = int(ano_raw)
+                    # Validar se o ano está dentro de um range válido (1900 até ano atual + 1)
+                    ano_atual = datetime.now().year
+                    if 1900 <= ano_int <= ano_atual + 1:
+                        ano_valido = ano_int
+                    else:
+                        print(f"⚠️ Ano inválido ({ano_int}), usando None")
+                except (ValueError, TypeError):
+                    print(f"⚠️ Ano não numérico ({ano_raw}), usando None")
+            
             valores = (
                 token,
                 veiculo.get('placa', ''),
                 veiculo.get('modelo', ''),
                 veiculo.get('cor', ''),
-                int(veiculo.get('ano', 0)) if veiculo.get('ano') else None,
+                ano_valido,
                 dados_vistoria.get('nome_conferente', ''),
-                veiculo.get('km_rodado', ''),  # Novo campo KM
-                veiculo.get('documento_nota_fiscal', ''),  # Novo campo documento
+                veiculo.get('km_rodado', ''),  # Campo KM
                 
                 # Questionário
                 questionario.get('ar_condicionado', False),
@@ -192,7 +213,7 @@ class VistoriaDatabase:
                 questionario.get('chave_roda', False),
                 questionario.get('pneu_step', False),
                 
-                # Marcas dos pneus - CORRIGIDO os nomes dos campos
+                # Marcas dos pneus
                 pneus.get('marca_pneu_dianteiro_esquerdo', ''),
                 pneus.get('marca_pneu_dianteiro_direito', ''),
                 pneus.get('marca_pneu_traseiro_esquerdo', ''),

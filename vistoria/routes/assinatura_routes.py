@@ -36,7 +36,8 @@ def gerar_link_assinatura():
                 'placa': vistoria_data.get('veiculo', {}).get('placa', ''),
                 'modelo': vistoria_data.get('veiculo', {}).get('modelo', ''),
                 'cor': vistoria_data.get('veiculo', {}).get('cor', ''),
-                'ano': vistoria_data.get('veiculo', {}).get('ano', '')
+                'ano': vistoria_data.get('veiculo', {}).get('ano', ''),
+                'km_rodado': vistoria_data.get('veiculo', {}).get('km_rodado', '')  # ADICIONADO KM_RODADO
             },
             'questionario': vistoria_data.get('questionario', {}),
             'pneus': vistoria_data.get('pneus', {}),
@@ -56,6 +57,8 @@ def gerar_link_assinatura():
         
         # Processar fotos do formato JSON (IGUAL À ROTA SALVAR_VISTORIA_COMPLETA)
         photos_data = []
+        
+        # Processar fotos do campo 'fotos' (formato antigo)
         fotos = vistoria_data.get('fotos', {})
         for field_name, foto_data in fotos.items():
             if foto_data and foto_data.get('url'):
@@ -67,7 +70,29 @@ def gerar_link_assinatura():
                     'type': foto_data.get('type', 'image/jpeg')
                 })
         
+        # Processar fotos do campo 'photos' (formato novo - incluindo documento)
+        photos_array = vistoria_data.get('photos', [])
+        for photo in photos_array:
+            if photo and photo.get('url'):
+                photos_data.append({
+                    'category': photo['category'],
+                    'name': photo['name'],
+                    'url': photo['url'],
+                    'size': photo.get('size', 0),
+                    'type': photo.get('type', 'image/jpeg')
+                })
+        
         dados_convertidos['photos'] = photos_data
+        
+        print(f"🔍 DEBUG: Total de fotos processadas: {len(photos_data)}")
+        for i, photo in enumerate(photos_data):
+            print(f"🔍 DEBUG: Foto {i+1}: category={photo['category']}, name={photo['name']}, type={photo['type']}")
+        
+        # Processar documento se fornecido
+        documento = vistoria_data.get('documento')
+        if documento and documento.get('file'):
+            # Documento será processado pelo vistoria_utils
+            dados_convertidos['documento'] = documento
         
         print(f"🔧 Convertido {len(photos_data)} fotos para processamento")
         
