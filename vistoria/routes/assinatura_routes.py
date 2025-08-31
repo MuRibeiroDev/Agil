@@ -255,6 +255,7 @@ def dados_vistoria_cliente():
             'modelo': vistoria['modelo'],
             'cor': vistoria['cor'],
             'ano': vistoria['ano'],
+            'km_rodado': vistoria['km_rodado'],  # ADICIONADO CAMPO KM_RODADO
             'nome_conferente': vistoria['nome_conferente'],
             'criado_em': vistoria['criado_em'].isoformat() if vistoria['criado_em'] else None,
             

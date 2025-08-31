@@ -1128,7 +1128,8 @@
                 { label: '🚗 Placa', value: vistoria.placa || 'N/A' },
                 { label: '🏭 Modelo', value: vistoria.modelo || 'N/A' },
                 { label: '🎨 Cor', value: vistoria.cor || 'N/A' },
-                { label: '📅 Ano', value: vistoria.ano || 'N/A' }
+                { label: '📅 Ano', value: vistoria.ano || 'N/A' },
+                { label: '🛣️ KM Rodado', value: vistoria.km_rodado ? `${vistoria.km_rodado} km` : 'N/A' }
             ];
             
             if (vehicleContainer) {
@@ -1243,25 +1244,59 @@
         }
         
         function openPhotoModal(url, title) {
-            // Criar modal para visualizar foto em tamanho maior
+            // Remover modal existente se houver
+            const existingModal = document.querySelector('.photo-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Criar novo modal para visualizar foto em tamanho maior
             const modal = document.createElement('div');
-            modal.className = 'photo-modal';
+            modal.className = 'photo-modal show'; // Adicionar classe 'show' imediatamente
             modal.innerHTML = `
-                <div class="photo-modal-content">
-                    <span class="photo-modal-close">&times;</span>
+                <div class="photo-modal-content" onclick="event.stopPropagation()">
+                    <button class="photo-modal-close" onclick="closePhotoModal()">&times;</button>
                     <img src="${url}" alt="${title}" class="photo-modal-image">
                     <div class="photo-modal-title">${title}</div>
                 </div>
             `;
             
             document.body.appendChild(modal);
+            document.body.style.overflow = 'hidden'; // Prevenir scroll da página
             
-            // Fechar modal ao clicar no X ou fora da imagem
+            // Fechar modal ao clicar fora da imagem
             modal.onclick = function(e) {
-                if (e.target === modal || e.target.className === 'photo-modal-close') {
-                    document.body.removeChild(modal);
+                if (e.target === modal) {
+                    closePhotoModal();
                 }
             };
+            
+            // Fechar modal com tecla ESC
+            const escHandler = function(e) {
+                if (e.key === 'Escape') {
+                    closePhotoModal();
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+            
+            // Armazenar o handler para poder removê-lo depois
+            modal.escHandler = escHandler;
+        }
+        
+        function closePhotoModal() {
+            const modal = document.querySelector('.photo-modal');
+            if (modal) {
+                // Remover event listener da tecla ESC
+                if (modal.escHandler) {
+                    document.removeEventListener('keydown', modal.escHandler);
+                }
+                
+                // Restaurar scroll da página
+                document.body.style.overflow = 'auto';
+                
+                // Remover modal do DOM
+                modal.remove();
+            }
         }
         
         function formatDate(dateString) {
@@ -1316,62 +1351,6 @@
             }
         }
         
-        // Função para abrir modal de foto (reutilizada)
-        function openPhotoModal(imageSrc, altText) {
-            // Criar modal se não existir
-            let modal = document.getElementById('photo-modal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'photo-modal';
-                modal.className = 'photo-modal';
-                modal.innerHTML = `
-                    <div class="photo-modal-content">
-                        <span class="photo-modal-close">&times;</span>
-                        <img class="photo-modal-image" src="" alt="">
-                        <div class="photo-modal-caption"></div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                
-                // Adicionar eventos de fechamento
-                const closeBtn = modal.querySelector('.photo-modal-close');
-                closeBtn.onclick = closePhotoModal;
-                
-                modal.onclick = function(e) {
-                    if (e.target === modal) {
-                        closePhotoModal();
-                    }
-                };
-                
-                // Fechar com ESC
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' && modal.style.display === 'block') {
-                        closePhotoModal();
-                    }
-                });
-            }
-            
-            // Atualizar conteúdo do modal
-            const img = modal.querySelector('.photo-modal-image');
-            const caption = modal.querySelector('.photo-modal-caption');
-            
-            img.src = imageSrc;
-            img.alt = altText;
-            caption.textContent = altText;
-            
-            // Mostrar modal
-            modal.style.display = 'block';
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closePhotoModal() {
-            const modal = document.getElementById('photo-modal');
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }
-        }
-
         // Variáveis globais do carrossel
         let currentSlide = 0;
         let totalSlides = 0;
@@ -1400,10 +1379,14 @@
                 if (nextBtn) nextBtn.style.display = 'none';
             }
             
-            // Suporte para teclado
+            // Suporte para teclado no carrossel (só quando modal não está aberto)
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'ArrowLeft') changeSlide(-1);
-                if (e.key === 'ArrowRight') changeSlide(1);
+                // Verificar se não há modal aberto antes de processar navegação do carrossel
+                const modal = document.querySelector('.photo-modal');
+                if (!modal) {
+                    if (e.key === 'ArrowLeft') changeSlide(-1);
+                    if (e.key === 'ArrowRight') changeSlide(1);
+                }
             });
         }
 
@@ -1431,47 +1414,7 @@
                 counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
             }
         }
-
-        function openPhotoModal(imageSrc, caption) {
-            const modal = document.getElementById('photo-modal');
-            if (!modal) return;
-            
-            const modalImg = modal.querySelector('img');
-            const modalCaption = modal.querySelector('.photo-modal-caption');
-            
-            if (modalImg) modalImg.src = imageSrc;
-            if (modalCaption) modalCaption.textContent = caption;
-            
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closePhotoModalCarousel() {
-            const modal = document.getElementById('photo-modal');
-            if (modal) {
-                modal.classList.remove('show');
-                document.body.style.overflow = 'auto';
-            }
-        }
     </script>
-
-    <!-- Modal de foto -->
-    <div id="photo-modal" class="photo-modal">
-        <div class="photo-modal-content">
-            <span class="photo-modal-close" onclick="closePhotoModal()">&times;</span>
-            <img id="photo-modal-image" class="photo-modal-image" src="" alt="">
-            <div id="photo-modal-caption" class="photo-modal-caption"></div>
-        </div>
-    </div>
-
-    <!-- Modal para visualização de fotos -->
-    <div id="photo-modal" class="photo-modal" onclick="closePhotoModalCarousel()">
-        <div class="photo-modal-content" onclick="event.stopPropagation()">
-            <button class="photo-modal-close" onclick="closePhotoModalCarousel()">&times;</button>
-            <img src="" alt="Foto da vistoria">
-            <div class="photo-modal-caption"></div>
-        </div>
-    </div>
 
 </body>
 </html>
