@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Sistema de Vistoria Agil</title>
+    
+    <!-- Preconnect para otimizar carregamento -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    
+    <!-- Meta tags para PWA e otimização mobile -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vistoria Agil">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="apple-touch-icon" href="/assets/favicon.svg">
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/frontend/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Main Container -->
+        <div class="container">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="company-logo">
+                        <div class="logo-icon">SA</div>
+                        <div class="company-info">
+                            <h1 class="title">Vistoria Agil</h1>
+                            <p class="subtitle">Vistoria de Veículos</p>
+                        </div>
+                    </div>
+                    <div class="header-meta">
+                        <div class="inspection-badge">
+                            <span class="badge-label">Vistoria Completa</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Indicador de Progresso -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-step active" data-step="1">
+                        <span class="step-number">1</span>
+                        <span class="step-label">Veículo</span>
+                    </div>
+                    <div class="progress-step" data-step="2">
+                        <span class="step-number">2</span>
+                        <span class="step-label">Questionário</span>
+                    </div>
+                    <div class="progress-step" data-step="3">
+                        <span class="step-number">3</span>
+                        <span class="step-label">Fotos</span>
+                    </div>
+                    <div class="progress-step" data-step="4">
+                        <span class="step-number">4</span>
+                        <span class="step-label">Conferente</span>
+                    </div>
+                    <div class="progress-step" data-step="5">
+                        <span class="step-number">5</span>
+                        <span class="step-label">Assinatura</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vistoria Form -->
+            <form id="form-vistoria" class="vistoria-form">
+                <!-- Passo 1: Informações do Veículo -->
+                <section class="section step-content" id="step-1">
+                    <h2 class="section-title">
+                        <span class="icon icon-car"></span>
+                        Informações do Veículo
+                    </h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nome_cliente" class="label">Nome do Cliente *</label>
+                            <input type="text" id="nome_cliente" name="nome_cliente" class="input uppercase-input" placeholder="Nome cliente" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="placa" class="label">Placa</label>
+                            <input type="text" id="placa" name="placa" class="input uppercase-input" placeholder="ABC1234" maxlength="7" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modelo" class="label">Modelo *</label>
+                            <input type="text" id="modelo" name="modelo" class="input uppercase-input" placeholder="Honda Civic" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cor" class="label">Cor</label>
+                            <input type="text" id="cor" name="cor" class="input uppercase-input" placeholder="Branco">
+                        </div>
+                        <div class="form-group">
+                            <label for="ano" class="label">Ano</label>
+                            <input type="number" id="ano" name="ano" class="input" placeholder="2020" min="1900" max="2035">
+                        </div>
+                        <div class="form-group">
+                            <label for="km_rodado" class="label">KM Rodado</label>
+                            <input type="text" id="km_rodado" name="km_rodado" class="input" placeholder="Ex: 50.000 km" maxlength="20">
+                        </div>
+                        <div class="photo-item">
+                            <label class="photo-label">Documento/Nota Fiscal</label>
+                            <div class="photo-upload">
+                                <input type="file" id="documento_nota_fiscal" name="documento_nota_fiscal" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                <label for="documento_nota_fiscal" class="photo-preview" id="preview_documento">
+                                     📄 Toque para selecionar documento
+                                </label>
+                                <!-- Botão alternativo para desktop - sempre visível -->
+                                <label for="documento_nota_fiscal" class="btn-upload-desktop" id="btn_upload_documento">
+                                    📎 Selecionar Documento
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 2: Questionário de Itens -->
+                <section class="section step-content hidden" id="step-2">
+                    <h2 class="section-title">
+                        <span class="icon icon-clipboard"></span>
+                        Questionário de Itens
+                    </h2>
+                    <div class="checkbox-grid">
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="ar_condicionado">
+                                Tem ar condicionado?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="antenas">
+                                Antenas?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="tapetes">
+                                Tapetes?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="tapete_porta_malas">
+                                Tapete porta malas?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="bateria">
+                                Bateria?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="retrovisor_direito">
+                                Retrovisor direito?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="retrovisor_esquerdo">
+                                Retrovisor esquerdo?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="extintor">
+                                Extintor?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="roda_comum">
+                                Roda comum?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="roda_especial">
+                                Roda especial?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="chave_principal">
+                                Chave principal?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="chave_reserva">
+                                Chave reserva?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="manual">
+                                Manual?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="documento">
+                                Documento?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="nota_fiscal">
+                                Nota fiscal?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="limpador_dianteiro">
+                                Limpador pára-brisa dianteiro?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="limpador_traseiro">
+                                Limpador pára-brisa traseiro?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="triangulo">
+                                Triângulo?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="macaco">
+                                Macaco?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="chave_roda">
+                                Chave de roda?
+                            </label>
+                        </div>
+                        <div class="checkbox-item">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="pneu_step">
+                                Pneu step?
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 3: Seção de Fotos -->
+                <section class="section step-content hidden" id="step-3">
+                    <h2 class="section-title">
+                        <span class="icon icon-camera"></span>
+                        Fotos da Vistoria
+                    </h2>
+                    
+                    <!-- Fotos Principais -->
+                    <div class="photo-category">
+                        <h3 class="photo-category-title">Fotos Obrigatórias</h3>
+                        <div class="photo-grid">
+                            <div class="photo-item">
+                                <label class="photo-label">Painel (ligado meia chave)</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_painel" name="foto_painel" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_painel">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Interior frente</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_interior_frente" name="foto_interior_frente" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_interior_frente">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Interior traseira</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_interior_tras" name="foto_interior_tras" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_interior_tras">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Frente</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_frente" name="foto_frente" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_frente">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Frente 45º esquerda</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_frente_45_esq" name="foto_frente_45_esq" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_frente_45_esq">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Frente 45º direita</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_frente_45_dir" name="foto_frente_45_dir" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_frente_45_dir">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Lateral esquerda</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_lateral_esq" name="foto_lateral_esq" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_lateral_esq">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Lateral direita</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_lateral_dir" name="foto_lateral_dir" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_lateral_dir">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Traseira 45º esquerda</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_tras_45_esq" name="foto_tras_45_esq" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_tras_45_esq">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Traseira 45º direita</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_tras_45_dir" name="foto_tras_45_dir" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_tras_45_dir">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Traseira</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_traseira" name="foto_traseira" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_traseira">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Teto</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_teto" name="foto_teto" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_teto">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Porta malas aberto</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_porta_malas" name="foto_porta_malas" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_porta_malas">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Step</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_step" name="foto_step" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_step">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fotos dos Pneus -->
+                    <div class="photo-category">
+                        <h3 class="photo-category-title">Pneus</h3>
+                        <div class="photo-grid">
+                            <div class="photo-item pneu-item">
+                                <label class="photo-label">Pneu Dianteiro Esquerdo</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_pneu_de" name="foto_pneu_de" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_pneu_de">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <input type="text" placeholder="Marca do pneu" name="marca_pneu_de" class="input pneu-marca">
+                            </div>
+                            
+                            <div class="photo-item pneu-item">
+                                <label class="photo-label">Pneu Dianteiro Direito</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_pneu_dd" name="foto_pneu_dd" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_pneu_dd">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <input type="text" placeholder="Marca do pneu" name="marca_pneu_dd" class="input pneu-marca">
+                            </div>
+                            
+                            <div class="photo-item pneu-item">
+                                <label class="photo-label">Pneu Traseiro Esquerdo</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_pneu_te" name="foto_pneu_te" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_pneu_te">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <input type="text" placeholder="Marca do pneu" name="marca_pneu_te" class="input pneu-marca">
+                            </div>
+                            
+                            <div class="photo-item pneu-item">
+                                <label class="photo-label">Pneu Traseiro Direito</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_pneu_td" name="foto_pneu_td" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_pneu_td">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <input type="text" placeholder="Marca do pneu" name="marca_pneu_td" class="input pneu-marca">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fotos de Observação -->
+                    <div class="photo-category">
+                        <h3 class="photo-category-title">Fotos de Observação (Opcionais)</h3>
+                        <div class="photo-grid">
+                            <div class="photo-item">
+                                <label class="photo-label">Observação 1</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_obs_1" name="foto_obs_1" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_obs_1">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <textarea placeholder="Descrição da observação" name="desc_obs_1" class="textarea obs-desc"></textarea>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Observação 2</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_obs_2" name="foto_obs_2" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_obs_2">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <textarea placeholder="Descrição da observação" name="desc_obs_2" class="textarea obs-desc"></textarea>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Observação 3</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_obs_3" name="foto_obs_3" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_obs_3">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <textarea placeholder="Descrição da observação" name="desc_obs_3" class="textarea obs-desc"></textarea>
+                            </div>
+                            
+                            <div class="photo-item">
+                                <label class="photo-label">Observação 4</label>
+                                <div class="photo-upload">
+                                    <input type="file" id="foto_obs_4" name="foto_obs_4" accept="image/*" capture="camera">
+                                    <div class="photo-preview" id="preview_obs_4">
+                                        📸 Toque para fotografar
+                                    </div>
+                                </div>
+                                <textarea placeholder="Descrição da observação" name="desc_obs_4" class="textarea obs-desc"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 4: Informações do Conferente -->
+                <section class="section step-content hidden" id="step-4">
+                    <h2 class="section-title">
+                         Informações do Conferente
+                    </h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="nome_conferente" class="label">Nome do Conferente *</label>
+                            <input type="text" id="nome_conferente" name="nome_conferente" class="input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="data_vistoria" class="label">Data e Hora da Vistoria</label>
+                            <input type="datetime-local" id="data_vistoria" name="data_vistoria" class="input" readonly>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 5: Revisão da Vistoria -->
+                <section class="section step-content hidden" id="step-5">
+                    <h2 class="section-title">
+                        📋 Revisão da Vistoria
+                    </h2>
+                    <div class="review-container">
+                        <div class="review-section">
+                            <h3 class="review-title">🚗 Dados do Veículo</h3>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Placa:</span>
+                                    <span class="review-value" id="review-placa">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Modelo:</span>
+                                    <span class="review-value" id="review-modelo">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Cor:</span>
+                                    <span class="review-value" id="review-cor">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Ano:</span>
+                                    <span class="review-value" id="review-ano">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">KM Rodado:</span>
+                                    <span class="review-value" id="review-km">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Documento:</span>
+                                    <span class="review-value" id="review-documento">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">✅ Questionário de Vistoria</h3>
+                            <div class="review-questions" id="review-questions">
+                                <!-- Perguntas serão preenchidas dinamicamente -->
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">📸 Fotos da Vistoria</h3>
+                            <div class="review-photos" id="review-photos">
+                                <p class="review-no-photos">Nenhuma foto adicionada</p>
+                            </div>
+                        </div>
+
+                        <div class="review-section">
+                            <h3 class="review-title">👤 Dados do Conferente</h3>
+                            <div class="review-grid">
+                                <div class="review-item">
+                                    <span class="review-label">Nome:</span>
+                                    <span class="review-value" id="review-conferente">-</span>
+                                </div>
+                                <div class="review-item">
+                                    <span class="review-label">Data/Hora:</span>
+                                    <span class="review-value" id="review-data">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="review-confirmation">
+                            <div class="confirmation-box">
+                                <p class="confirmation-text">
+                                    ⚠️ <strong>Atenção:</strong> Verifique todas as informações acima antes de prosseguir para a assinatura.
+                                    Após assinar, não será possível alterar os dados da vistoria.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Passo 6: Assinatura Digital -->
+                <section class="section step-content hidden" id="step-6">
+                    <h2 class="section-title">
+                        ✍️ Assinatura Digital do Cliente
+                    </h2>
+                    <div class="signature-container">
+                        <canvas id="signature-canvas" class="signature-canvas"></canvas>
+                        <div class="signature-controls">
+                            <button type="button" id="clear-signature" class="button button-secondary">
+                                🗑️ Limpar Assinatura
+                            </button>
+                            <button type="button" id="generate-signature-link" class="button button-warning">
+                                � Salvar e Gerar Link para Cliente
+                            </button>
+                        </div>
+                        <p class="signature-note">💡 Ao gerar o link, a vistoria será salva automaticamente e o processo será finalizado</p>
+                    </div>
+                </section>
+
+                <!-- Navegação entre Passos -->
+                <div class="step-navigation">
+                    <button type="button" id="btn-anterior" class="button button-secondary button-small hidden">
+                        <span class="button-icon">&larr;</span>
+                        <span>Voltar</span>
+                    </button>
+                    <button type="button" id="btn-proximo" class="button button-primary button-small">
+                        <span>Avançar</span>
+                        <span class="button-icon">&rarr;</span>
+                    </button>
+                </div>
+
+                <!-- Ações do Formulário (só aparece no último passo) -->
+                <div class="form-actions hidden" id="final-actions">
+                    <div class="action-buttons">
+                        <button type="button" id="btn-anterior-final" class="button button-secondary button-small">
+                            <span class="button-icon">←</span>
+                            <span>Voltar</span>
+                        </button>
+                        <button type="button" id="btn-finalizar" class="button button-primary button-small">
+                            Finalizar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div id="modal-confirm" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmação</h3>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message"></p>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="button button-secondary">
+                    <span>Cancelar</span>
+                </button>
+                <button id="modal-confirm-btn" class="button button-primary">
+                    <span>Confirmar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/frontend/js/app.js"></script>
+    
+    <!-- Service Worker para cache offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/js/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registrado com sucesso:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
