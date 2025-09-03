@@ -2662,13 +2662,6 @@ function validateVehicleInfo() {
         showToast('Atenção', 'Formato de placa inválido', 'warning');
     }
     
-    // Validar tipo de veículo e nome do terceiro (apenas se terceiro for selecionado E nome preenchido)
-    if (tipoVeiculo && tipoVeiculo.value === 'terceiro') {
-        // Se selecionou terceiro mas não preencheu nome, apenas mostrar aviso (não bloquear)
-        if (!nome_terceiro || !nome_terceiro.value.trim()) {
-            showToast('Dica', 'Você pode preencher o nome do terceiro para registrar o proprietário do veículo', 'info');
-        }
-    }
     
     return isValid;
 }
