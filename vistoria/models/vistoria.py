@@ -106,9 +106,7 @@ class VistoriaModel:
         """Validar dados obrigatórios"""
         errors = []
         
-        if not self.nome_cliente or not self.nome_cliente.strip():
-            errors.append("Nome do cliente é obrigatório")
-        
+        # Apenas o nome do conferente é obrigatório agora
         if not self.nome_conferente or not self.nome_conferente.strip():
             errors.append("Nome do conferente é obrigatório")
         

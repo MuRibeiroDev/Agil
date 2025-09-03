@@ -2646,7 +2646,6 @@ function validateCurrentStep() {
 
 // Validar informações do veículo
 function validateVehicleInfo() {
-    const nome_cliente = document.getElementById('nome_cliente');
     const placa = document.getElementById('placa');
     const nome_terceiro = document.getElementById('nome_terceiro');
     const tipoVeiculo = document.querySelector('input[name="tipo_veiculo"]:checked');
@@ -2654,13 +2653,7 @@ function validateVehicleInfo() {
     let isValid = true;
     
     // Limpar erros visuais anteriores
-    clearFieldErrors([nome_cliente, placa, nome_terceiro]);
-    
-    // Validar nome do cliente (obrigatório)
-    if (!nome_cliente || !nome_cliente.value.trim()) {
-        addFieldError(nome_cliente);
-        isValid = false;
-    }
+    clearFieldErrors([placa, nome_terceiro]);
     
     // Validar placa APENAS se foi preenchida (não obrigatória)
     if (placa && placa.value && !isValidPlaca(placa.value)) {
