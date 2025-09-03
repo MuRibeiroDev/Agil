@@ -20,6 +20,10 @@ class VistoriaModel:
     placa: Optional[str] = None
     ano: Optional[str] = None
     
+    # Campos de propriedade do veículo
+    proprio: bool = True
+    nome_terceiro: Optional[str] = None
+    
     # Campos opcionais
     id: Optional[str] = None
     token: Optional[str] = None
@@ -105,13 +109,10 @@ class VistoriaModel:
         if not self.nome_cliente or not self.nome_cliente.strip():
             errors.append("Nome do cliente é obrigatório")
         
-        if not self.cor or not self.cor.strip():
-            errors.append("Cor é obrigatória")
-        
-        if not self.modelo or not self.modelo.strip():
-            errors.append("Modelo é obrigatório")
-        
         if not self.nome_conferente or not self.nome_conferente.strip():
             errors.append("Nome do conferente é obrigatório")
+        
+        # Validar se é de terceiro e nome do terceiro foi informado (apenas dica, não erro)
+        # Removido a validação obrigatória pois agora é opcional
         
         return len(errors) == 0, errors

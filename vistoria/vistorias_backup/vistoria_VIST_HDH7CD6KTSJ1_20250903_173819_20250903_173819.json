@@ -1,0 +1,16 @@
+{
+  "vistoria_id": "10",
+  "token": "VIST_HDH7CD6KTSJ1_20250903_173819",
+  "dados_originais": {
+    "nome_conferente": "Teste Debug",
+    "nome_cliente": "Cliente Teste",
+    "proprio": "false",
+    "nome_terceiro": "EMPRESA TESTE",
+    "placa": "TST1234",
+    "modelo": "Teste",
+    "cor": "Azul",
+    "photos": []
+  },
+  "created_at": "2025-09-03T17:38:19.632142",
+  "backup_version": "1.0"
+}

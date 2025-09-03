@@ -92,13 +92,37 @@
                             <label for="nome_cliente" class="label">Nome do Cliente *</label>
                             <input type="text" id="nome_cliente" name="nome_cliente" class="input uppercase-input" placeholder="Nome cliente" required>
                         </div>
+                        
+                        <!-- Seleção de veículo próprio ou de terceiro -->
+                        <div class="form-group full-width">
+                            <label class="label">Tipo de Veículo</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="tipo_veiculo" value="proprio" checked>
+                                    <span class="radio-custom"></span>
+                                    Veículo Próprio
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="tipo_veiculo" value="terceiro">
+                                    <span class="radio-custom"></span>
+                                    Veículo de Terceiro
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Campo para nome do terceiro (oculto inicialmente) -->
+                        <div class="form-group full-width hidden" id="campo-terceiro">
+                            <label for="nome_terceiro" class="label">Nome do Terceiro</label>
+                            <input type="text" id="nome_terceiro" name="nome_terceiro" class="input uppercase-input" placeholder="nome da transportadora responsável">
+                        </div>
+                        
                         <div class="form-group">
                             <label for="placa" class="label">Placa</label>
                             <input type="text" id="placa" name="placa" class="input uppercase-input" placeholder="ABC1234" maxlength="7">
                         </div>
                         <div class="form-group">
-                            <label for="modelo" class="label">Modelo *</label>
-                            <input type="text" id="modelo" name="modelo" class="input uppercase-input" placeholder="Honda Civic" required>
+                            <label for="modelo" class="label">Modelo</label>
+                            <input type="text" id="modelo" name="modelo" class="input uppercase-input" placeholder="Honda Civic">
                         </div>
                         <div class="form-group">
                             <label for="cor" class="label">Cor *</label>

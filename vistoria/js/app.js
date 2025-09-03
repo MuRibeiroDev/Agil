@@ -101,6 +101,12 @@ function initApp() {
         initRemoteSignature();
         initFormHandlers();
         initStepNavigation();
+        
+        // Inicializar toggle de veículo com pequeno delay para garantir que DOM está pronto
+        setTimeout(() => {
+            initVehicleTypeToggle(); // Nova função para controlar tipo de veículo
+        }, 100);
+        
         initLucideIcons();
         
         console.log('Sistema inicializado com sucesso!');
@@ -744,6 +750,9 @@ function collectVistoriaData() {
             if (input.checked) {
                 if (['placa', 'modelo', 'cor', 'ano'].includes(name)) {
                     data.veiculo[name] = input.value;
+                } else if (name === 'tipo_veiculo') {
+                    // Mapear tipo de veículo para campo 'proprio'
+                    data.veiculo.proprio = input.value === 'proprio';
                 } else {
                     data[name] = input.value;
                 }
@@ -761,6 +770,9 @@ function collectVistoriaData() {
             } else if (value) {
                 if (['placa', 'modelo', 'cor', 'ano'].includes(name)) {
                     data.veiculo[name] = value;
+                } else if (name === 'nome_terceiro') {
+                    // Nome do terceiro vai para o objeto veiculo
+                    data.veiculo.nome_terceiro = value;
                 } else {
                     if (name.startsWith("marca_pneu_")) { 
                         // Mapear nomes abreviados para nomes completos do banco
@@ -787,6 +799,8 @@ function collectVistoriaData() {
     if (!data.veiculo.modelo) data.veiculo.modelo = '';
     if (!data.veiculo.cor) data.veiculo.cor = '';
     if (!data.veiculo.ano) data.veiculo.ano = '';
+    if (data.veiculo.proprio === undefined) data.veiculo.proprio = true; // Default para próprio
+    if (!data.veiculo.nome_terceiro) data.veiculo.nome_terceiro = ''; // Vazio se próprio
     if (!data.nome_conferente) data.nome_conferente = '';
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
@@ -878,6 +892,70 @@ function initFormHandlers() {
 
     // Inicializar campos de entrada automática maiúscula
     initUppercaseInputs();
+}
+
+// Inicializar controle de tipo de veículo (próprio/terceiro)
+function initVehicleTypeToggle() {
+    console.log('🔧 Inicializando controle de tipo de veículo...');
+    
+    const radioButtons = document.querySelectorAll('input[name="tipo_veiculo"]');
+    const campoTerceiro = document.getElementById('campo-terceiro');
+    const inputNomeTerceiro = document.getElementById('nome_terceiro');
+    
+    console.log('🔍 Elementos encontrados:');
+    console.log('   - Radio buttons:', radioButtons.length);
+    console.log('   - Campo terceiro:', !!campoTerceiro);
+    console.log('   - Input nome terceiro:', !!inputNomeTerceiro);
+    
+    if (!radioButtons.length || !campoTerceiro) {
+        console.warn('❌ Elementos de tipo de veículo não encontrados');
+        return;
+    }
+    
+    // Função para controlar visibilidade do campo
+    function toggleCampoTerceiro() {
+        const tipoSelecionado = document.querySelector('input[name="tipo_veiculo"]:checked')?.value;
+        console.log('🔄 Tipo selecionado:', tipoSelecionado);
+        
+        if (tipoSelecionado === 'terceiro') {
+            console.log('📝 Mostrando campo do terceiro...');
+            // Mostrar campo do terceiro
+            campoTerceiro.classList.remove('hidden');
+            if (inputNomeTerceiro) {
+                // Não tornar obrigatório mais
+                setTimeout(() => inputNomeTerceiro.focus(), 100);
+            }
+        } else {
+            console.log('🙈 Escondendo campo do terceiro...');
+            // Esconder campo do terceiro
+            campoTerceiro.classList.add('hidden');
+            if (inputNomeTerceiro) {
+                inputNomeTerceiro.removeAttribute('required');
+                inputNomeTerceiro.value = '';
+                // Limpar erros de validação se houver
+                inputNomeTerceiro.classList.remove('validation-error');
+            }
+        }
+    }
+    
+    // Adicionar event listeners aos radio buttons
+    radioButtons.forEach((radio, index) => {
+        console.log(`📻 Adicionando listener ao radio ${index + 1}: ${radio.value}`);
+        radio.addEventListener('change', function() {
+            console.log('🎯 Radio button alterado:', this.value);
+            toggleCampoTerceiro();
+        });
+        
+        // Também adicionar listener de click para garantir
+        radio.addEventListener('click', function() {
+            console.log('🖱️ Radio button clicado:', this.value);
+            setTimeout(toggleCampoTerceiro, 10);
+        });
+    });
+    
+    // Estado inicial
+    console.log('🏁 Definindo estado inicial...');
+    toggleCampoTerceiro();
 }
 
 // Inicializar campos de entrada automática maiúscula
@@ -1145,9 +1223,14 @@ async function collectFormData() {
     // Coletar dados dos inputs do formulário
     const inputs = form.querySelectorAll('input, select, textarea');
     
+    console.log('🔍 [DEBUG] Coletando dados do formulário...');
+    console.log('🔍 [DEBUG] Total de inputs encontrados:', inputs.length);
+    
     inputs.forEach(input => {
         const name = input.name || input.id;
         if (!name) return;
+        
+        console.log(`🔍 [DEBUG] Processando input: ${name}, tipo: ${input.type}, valor: ${input.value}, checked: ${input.checked}`);
         
         if (input.type === 'checkbox') {
             // Para checkboxes, verificar se está marcado
@@ -1155,8 +1238,13 @@ async function collectFormData() {
         } else if (input.type === 'radio') {
             // Para radio buttons, só adicionar se estiver selecionado
             if (input.checked) {
+                console.log(`🎯 [DEBUG] Radio selecionado: ${name} = ${input.value}`);
                 if (['placa', 'modelo', 'cor', 'ano', 'km_rodado'].includes(name)) {
                     data.veiculo[name] = input.value;
+                } else if (name === 'tipo_veiculo') {
+                    // Mapear tipo de veículo para campo 'proprio'
+                    data.veiculo.proprio = input.value === 'proprio';
+                    console.log(`🚗 [DEBUG] Tipo veículo definido: proprio = ${data.veiculo.proprio}`);
                 } else {
                     data[name] = input.value;
                 }
@@ -1174,6 +1262,10 @@ async function collectFormData() {
             } else if (value) {
                 if (['placa', 'modelo', 'cor', 'ano', 'km_rodado'].includes(name)) {
                     data.veiculo[name] = value;
+                } else if (name === 'nome_terceiro') {
+                    // Nome do terceiro vai para o objeto veiculo
+                    data.veiculo.nome_terceiro = value;
+                    console.log(`👤 [DEBUG] Nome terceiro definido: ${value}`);
                 } else {
                     if (name.startsWith("marca_pneu_")) { 
                         // Mapear nomes abreviados para nomes completos do banco
@@ -1200,12 +1292,19 @@ async function collectFormData() {
     if (!data.veiculo.cor) data.veiculo.cor = '';
     if (!data.veiculo.ano) data.veiculo.ano = '';
     if (!data.veiculo.km_rodado) data.veiculo.km_rodado = '';  // Campo KM como número
+    if (data.veiculo.proprio === undefined) data.veiculo.proprio = true; // Default para próprio
+    if (!data.veiculo.nome_terceiro) data.veiculo.nome_terceiro = ''; // Vazio se próprio
     if (!data.nome_conferente) data.nome_conferente = '';
     if (!data.nome_cliente) data.nome_cliente = '';  // Campo obrigatório nome do cliente
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
     // DEBUG: Log dos dados dos pneus coletados
     console.log('🔍 DEBUG - Dados dos pneus coletados:', data.pneus);
+    
+    // DEBUG: Log dos dados do veículo coletados
+    console.log('🔍 DEBUG - Dados do veículo coletados:', data.veiculo);
+    console.log('🔍 DEBUG - Próprio:', data.veiculo.proprio);
+    console.log('🔍 DEBUG - Nome terceiro:', data.veiculo.nome_terceiro);
     
     // Adicionar documento se existir (múltiplas fontes de verificação)
     console.log('🔍 DOCUMENTO DEBUG - Verificando fontes:');
@@ -2548,14 +2647,14 @@ function validateCurrentStep() {
 // Validar informações do veículo
 function validateVehicleInfo() {
     const nome_cliente = document.getElementById('nome_cliente');
-    const cor = document.getElementById('cor');
-    const modelo = document.getElementById('modelo');
     const placa = document.getElementById('placa');
+    const nome_terceiro = document.getElementById('nome_terceiro');
+    const tipoVeiculo = document.querySelector('input[name="tipo_veiculo"]:checked');
     
     let isValid = true;
     
     // Limpar erros visuais anteriores
-    clearFieldErrors([nome_cliente, cor, modelo, placa]);
+    clearFieldErrors([nome_cliente, placa, nome_terceiro]);
     
     // Validar nome do cliente (obrigatório)
     if (!nome_cliente || !nome_cliente.value.trim()) {
@@ -2563,22 +2662,19 @@ function validateVehicleInfo() {
         isValid = false;
     }
     
-    // Validar cor (obrigatório)
-    if (!cor || !cor.value.trim()) {
-        addFieldError(cor);
-        isValid = false;
-    }
-    
-    // Validar modelo (obrigatório)
-    if (!modelo || !modelo.value.trim()) {
-        addFieldError(modelo);
-        isValid = false;
-    }
-    
     // Validar placa APENAS se foi preenchida (não obrigatória)
     if (placa && placa.value && !isValidPlaca(placa.value)) {
         addFieldError(placa);
         isValid = false;
+        showToast('Atenção', 'Formato de placa inválido', 'warning');
+    }
+    
+    // Validar tipo de veículo e nome do terceiro (apenas se terceiro for selecionado E nome preenchido)
+    if (tipoVeiculo && tipoVeiculo.value === 'terceiro') {
+        // Se selecionou terceiro mas não preencheu nome, apenas mostrar aviso (não bloquear)
+        if (!nome_terceiro || !nome_terceiro.value.trim()) {
+            showToast('Dica', 'Você pode preencher o nome do terceiro para registrar o proprietário do veículo', 'info');
+        }
     }
     
     return isValid;

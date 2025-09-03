@@ -1132,6 +1132,19 @@
                 { label: '🛣️ KM Rodado', value: vistoria.km_rodado ? `${vistoria.km_rodado} km` : 'N/A' }
             ];
             
+            // Adicionar informação sobre propriedade do veículo
+            if (vistoria.proprio === false && vistoria.nome_terceiro) {
+                vehicleData.splice(1, 0, { 
+                    label: '👤 Proprietário', 
+                    value: vistoria.nome_terceiro 
+                });
+            } else if (vistoria.proprio !== false) {
+                vehicleData.splice(1, 0, { 
+                    label: '👤 Proprietário', 
+                    value: 'Veículo Próprio' 
+                });
+            }
+            
             if (vehicleContainer) {
                 vehicleContainer.innerHTML = vehicleData.map(item => `
                     <div class="review-item">

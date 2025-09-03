@@ -38,8 +38,8 @@ SIGNATURE_CONFIG = {
 }
 
 # Criação automática de diretórios
-for config in [UPLOAD_CONFIG, SIGNATURE_CONFIG]:
-    config['FOLDER'].mkdir(exist_ok=True)
+UPLOAD_CONFIG['UPLOAD_FOLDER'].mkdir(exist_ok=True)
+SIGNATURE_CONFIG['FOLDER'].mkdir(exist_ok=True)
 
 # Configurações de token de assinatura
 TOKEN_CONFIG = {

@@ -138,6 +138,7 @@ class VistoriaDatabase:
             sql = """
             INSERT INTO vistorias (
                 token, placa, modelo, cor, ano, nome_conferente, nome_cliente, km_rodado,
+                proprio, nome_terceiro,
                 ar_condicionado, antenas, tapetes, tapete_porta_malas, bateria,
                 retrovisor_direito, retrovisor_esquerdo, extintor, roda_comum, roda_especial,
                 chave_principal, chave_reserva, manual, documento, nota_fiscal,
@@ -147,6 +148,7 @@ class VistoriaDatabase:
                 token_expira_em, status
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
@@ -155,9 +157,48 @@ class VistoriaDatabase:
             """
             
             # Preparar dados
-            veiculo = dados_vistoria.get('veiculo', {})
-            questionario = dados_vistoria.get('questionario', {})
-            pneus = dados_vistoria.get('pneus', {})
+            # Suporte para dados estruturados (objeto) e dados planos (form-data)
+            if 'veiculo' in dados_vistoria:
+                # Formato estruturado (objeto JSON)
+                veiculo = dados_vistoria.get('veiculo', {})
+                questionario = dados_vistoria.get('questionario', {})
+                pneus = dados_vistoria.get('pneus', {})
+            else:
+                # Formato plano (form-data) - reestruturar dados
+                proprio_raw = dados_vistoria.get('proprio', 'true')
+                nome_terceiro_raw = dados_vistoria.get('nome_terceiro', '')
+                
+                proprio_convertido = proprio_raw.lower() == 'true' if isinstance(proprio_raw, str) else bool(proprio_raw)
+                
+                veiculo = {
+                    'placa': dados_vistoria.get('placa', ''),
+                    'modelo': dados_vistoria.get('modelo', ''),
+                    'cor': dados_vistoria.get('cor', ''),
+                    'ano': dados_vistoria.get('ano', ''),
+                    'km_rodado': dados_vistoria.get('km_rodado', ''),
+                    'proprio': proprio_convertido,  # Usar valor convertido
+                    'nome_terceiro': nome_terceiro_raw
+                }
+                
+                # Mapear questionário
+                questionario = {}
+                questionario_fields = [
+                    'ar_condicionado', 'antenas', 'tapetes', 'tapete_porta_malas', 'bateria',
+                    'retrovisor_direito', 'retrovisor_esquerdo', 'extintor', 'roda_comum', 'roda_especial',
+                    'chave_principal', 'chave_reserva', 'manual', 'documento', 'nota_fiscal',
+                    'limpador_dianteiro', 'limpador_traseiro', 'triangulo', 'macaco', 'chave_roda', 'pneu_step'
+                ]
+                
+                for field in questionario_fields:
+                    questionario[field] = dados_vistoria.get(field, 'false').lower() == 'true'
+                
+                # Mapear pneus
+                pneus = {
+                    'marca_pneu_dianteiro_esquerdo': dados_vistoria.get('marca_pneu_dianteiro_esquerdo', ''),
+                    'marca_pneu_dianteiro_direito': dados_vistoria.get('marca_pneu_dianteiro_direito', ''),
+                    'marca_pneu_traseiro_esquerdo': dados_vistoria.get('marca_pneu_traseiro_esquerdo', ''),
+                    'marca_pneu_traseiro_direito': dados_vistoria.get('marca_pneu_traseiro_direito', '')
+                }
             
             # DEBUG: Log dos dados dos pneus
             print(f"🔍 [DEBUG] Dados completos dos pneus recebidos: {pneus}")
@@ -181,6 +222,10 @@ class VistoriaDatabase:
                 except (ValueError, TypeError):
                     print(f"⚠️ Ano não numérico ({ano_raw}), usando None")
             
+            # Preparar valores finais
+            proprio_final = veiculo.get('proprio', True)  # Boolean, padrão True (próprio)
+            nome_terceiro_final = veiculo.get('nome_terceiro', '') or None  # Nome do terceiro se não for próprio
+            
             valores = (
                 token,
                 veiculo.get('placa', '') or None,  # Permite null se vazio
@@ -190,6 +235,10 @@ class VistoriaDatabase:
                 dados_vistoria.get('nome_conferente', ''),  # Obrigatório
                 dados_vistoria.get('nome_cliente', ''),  # Obrigatório
                 veiculo.get('km_rodado', '') or None,  # Campo KM, permite null se vazio
+                
+                # Campos de propriedade do veículo
+                proprio_final,
+                nome_terceiro_final,
                 
                 # Questionário
                 questionario.get('ar_condicionado', False),

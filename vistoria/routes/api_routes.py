@@ -43,6 +43,8 @@ def salvar_vistoria_completa():
                 'cor': data.get('veiculo', {}).get('cor', ''),
                 'ano': data.get('veiculo', {}).get('ano', ''),
                 'km_rodado': data.get('veiculo', {}).get('km_rodado', ''),  # Novo campo
+                'proprio': data.get('veiculo', {}).get('proprio', True),  # Campo próprio/terceiro
+                'nome_terceiro': data.get('veiculo', {}).get('nome_terceiro', ''),  # Nome do terceiro
                 'documento_nota_fiscal': ''  # Será atualizado se houver upload
             },
             'questionario': data.get('questionario', {}),

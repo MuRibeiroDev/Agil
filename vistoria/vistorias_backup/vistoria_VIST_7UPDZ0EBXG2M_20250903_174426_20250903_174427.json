@@ -1,0 +1,40 @@
+{
+  "vistoria_id": "15",
+  "token": "VIST_7UPDZ0EBXG2M_20250903_174426",
+  "dados_originais": {
+    "veiculo": {
+      "placa": "TST1234",
+      "modelo": "Teste",
+      "cor": "Azul",
+      "ano": "2020",
+      "km_rodado": "50000",
+      "documento_nota_fiscal": ""
+    },
+    "questionario": {
+      "ar_condicionado": true,
+      "antenas": false,
+      "tapetes": true
+    },
+    "pneus": {
+      "marca_pneu_dianteiro_esquerdo": "Pirelli",
+      "marca_pneu_dianteiro_direito": "Bridgestone"
+    },
+    "nome_conferente": "João Teste",
+    "nome_cliente": "Cliente Teste",
+    "data_vistoria": "2025-09-03 17:44:26",
+    "ar_condicionado": true,
+    "antenas": false,
+    "tapetes": true,
+    "photos": [
+      {
+        "category": "foto_painel",
+        "name": "teste.png",
+        "url": "data:image/png;base64,test",
+        "size": 0,
+        "type": "image/png"
+      }
+    ]
+  },
+  "created_at": "2025-09-03T17:44:27.000012",
+  "backup_version": "1.0"
+}
