@@ -888,9 +888,11 @@
         
         // Inicializar quando a página carregar
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔍 [DEBUG] DOMContentLoaded - Inicializando página');
             initClientSignature();
             loadVistoriaData();
             initCarousel(); // Inicializar carrossel de fotos
+            console.log('🔍 [DEBUG] Inicialização completa');
         });
         
         // Inicializar assinatura
@@ -1078,7 +1080,8 @@
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
             
-            console.log('Token obtido:', token);
+            console.log('🔍 [DEBUG] loadVistoriaData chamada');
+            console.log('🔍 [DEBUG] Token obtido:', token);
             
             if (!token) {
                 showStatus('Link inválido ou expirado.', 'error');
@@ -1086,14 +1089,14 @@
             }
             
             // Carregar dados da vistoria
-            console.log('Fazendo chamada para API...');
+            console.log('🔍 [DEBUG] Fazendo chamada para API...');
             fetch(`/api/dados_vistoria_cliente?token=${token}`)
             .then(response => {
-                console.log('Resposta da API:', response.status);
+                console.log('🔍 [DEBUG] Resposta da API recebida:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('Dados recebidos da API:', data);
+                console.log('🔍 [DEBUG] Dados JSON recebidos da API:', data);
                 if (data.success) {
                     populateVistoriaData(data.vistoria);
                 } else {
@@ -1101,13 +1104,14 @@
                 }
             })
             .catch(error => {
-                console.error('Erro:', error);
+                console.error('🔍 [DEBUG] Erro na API:', error);
                 showStatus('❌ Erro de conexão. Verifique sua internet.', 'error');
             });
         }
         
         function populateVistoriaData(vistoria) {
-            console.log('Dados recebidos:', vistoria);
+            console.log('🔍 [DEBUG] populateVistoriaData chamada');
+            console.log('🔍 [DEBUG] Dados completos da vistoria:', vistoria);
             
             // Carregar dados do veículo
             populateVehicleData(vistoria);
@@ -1213,29 +1217,39 @@
         function populatePhotosData(vistoria) {
             const photosContainer = document.getElementById('client-photos-data');
             
-            console.log('Populando fotos:', vistoria.photos);
+            console.log('🔍 [DEBUG] populatePhotosData chamada');
+            console.log('🔍 [DEBUG] Fotos recebidas:', vistoria.photos);
+            console.log('🔍 [DEBUG] Quantidade de fotos:', vistoria.photos ? vistoria.photos.length : 0);
             
             // Verificar se há fotos
             const photos = vistoria.photos || [];
             
             if (photosContainer) {
+                console.log('🔍 [DEBUG] Container encontrado, processando fotos...');
+                
                 if (photos.length === 0) {
+                    console.log('🔍 [DEBUG] Nenhuma foto encontrada');
                     photosContainer.innerHTML = '<p class="no-photos">📷 Nenhuma foto foi anexada nesta vistoria.</p>';
                     return;
                 }
+                
+                console.log('🔍 [DEBUG] Criando HTML para', photos.length, 'fotos');
                 
                 // Criar carrossel de fotos
                 photosContainer.innerHTML = `
                     <div class="photos-carousel-container">
                         <div class="photos-carousel" id="client-photos-carousel">
-                            ${photos.map((photo, index) => `
-                                <div class="review-photo" onclick="openPhotoModal('${photo.url || photo.arquivo_url || photo.arquivo_path}', '${photo.name || photo.categoria || 'Foto ' + (index + 1)}')">
-                                    <img src="${photo.url || photo.arquivo_url || photo.arquivo_path}" 
-                                         alt="Foto ${index + 1}" 
-                                         onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'padding:20px;text-align:center;color:#666;\\'>❌ Erro ao carregar imagem</div>';">
-                                    <div class="photo-label">${photo.name || photo.categoria || 'Foto ' + (index + 1)}</div>
-                                </div>
-                            `).join('')}
+                            ${photos.map((photo, index) => {
+                                console.log('🔍 [DEBUG] Processando foto', index + 1, ':', photo);
+                                return `
+                                    <div class="review-photo" onclick="openPhotoModal('${photo.url || photo.arquivo_url || photo.arquivo_path}', '${photo.name || photo.categoria || 'Foto ' + (index + 1)}')">
+                                        <img src="${photo.url || photo.arquivo_url || photo.arquivo_path}" 
+                                             alt="Foto ${index + 1}" 
+                                             onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'padding:20px;text-align:center;color:#666;\\'>❌ Erro ao carregar imagem</div>';">
+                                        <div class="photo-label">${photo.name || photo.categoria || 'Foto ' + (index + 1)}</div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                         ${photos.length > 1 ? `
                             <button class="carousel-controls carousel-prev" onclick="moveClientCarousel(-1)">‹</button>
@@ -1245,12 +1259,14 @@
                     </div>
                 `;
                 
+                console.log('🔍 [DEBUG] HTML criado, inicializando carrossel...');
+                
                 // Inicializar carrossel
                 clientTotalPhotos = photos.length;
                 clientCarouselIndex = 0;
                 updateClientCarouselPosition();
                 
-                console.log('Carrossel de fotos criado com', photos.length, 'fotos');
+                console.log('🔍 [DEBUG] Carrossel inicializado com', photos.length, 'fotos');
             } else {
                 console.error('Elemento client-photos-data não encontrado!');
             }

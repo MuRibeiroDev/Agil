@@ -9,6 +9,35 @@ from utils import save_signature_image, save_vistoria_complete
 assinatura_bp = Blueprint('assinatura', __name__)
 
 
+def prepare_vistoria_data_for_saving(vistoria_data):
+    """
+    Converte dados básicos do frontend para o formato esperado pelo save_vistoria_complete
+    
+    Args:
+        vistoria_data (dict): Dados da vistoria do frontend
+        
+    Returns:
+        dict: Dados formatados para salvamento (sem fotos - devem ser adicionadas depois)
+    """
+    return {
+        'veiculo': {
+            'placa': vistoria_data.get('veiculo', {}).get('placa', ''),
+            'modelo': vistoria_data.get('veiculo', {}).get('modelo', ''),
+            'cor': vistoria_data.get('veiculo', {}).get('cor', ''),
+            'ano': vistoria_data.get('veiculo', {}).get('ano', ''),
+            'km_rodado': vistoria_data.get('veiculo', {}).get('km_rodado', ''),
+            'proprio': vistoria_data.get('veiculo', {}).get('proprio', True),
+            'nome_terceiro': vistoria_data.get('veiculo', {}).get('nome_terceiro', ''),
+            'documento_nota_fiscal': ''  # Será atualizado se houver upload
+        },
+        'questionario': vistoria_data.get('questionario', {}),
+        'pneus': vistoria_data.get('pneus', {}),
+        'nome_conferente': vistoria_data.get('nome_conferente', ''),
+        'nome_cliente': vistoria_data.get('nome_cliente', ''),  # nome_cliente fica no nível raiz
+        'data_vistoria': vistoria_data.get('data_vistoria', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    }
+
+
 @assinatura_bp.route('/api/gerar_link_assinatura', methods=['POST'])
 def gerar_link_assinatura():
     """Gerar link único para assinatura remota do cliente - salva no banco"""
@@ -18,6 +47,9 @@ def gerar_link_assinatura():
         
         print(f"🔗 Gerando link para: {vistoria_data.get('placa', 'N/A')}")
         print(f"🔍 DEBUG: Dados recebidos para link: {vistoria_data}")
+        print(f"🔍 DEBUG: nome_cliente recebido: '{vistoria_data.get('nome_cliente', 'AUSENTE')}'")
+        print(f"🔍 DEBUG: nome_terceiro recebido: '{vistoria_data.get('veiculo', {}).get('nome_terceiro', 'AUSENTE')}'")
+        
         
         # Testar conexão com o banco antes de salvar
         try:
@@ -30,20 +62,8 @@ def gerar_link_assinatura():
                 'message': f'Erro de conexão com banco: {str(db_error)}'
             }), 500
         
-        # Converter dados do formato frontend para backend (igual à rota salvar_vistoria_completa)
-        dados_convertidos = {
-            'veiculo': {
-                'placa': vistoria_data.get('veiculo', {}).get('placa', ''),
-                'modelo': vistoria_data.get('veiculo', {}).get('modelo', ''),
-                'cor': vistoria_data.get('veiculo', {}).get('cor', ''),
-                'ano': vistoria_data.get('veiculo', {}).get('ano', ''),
-                'km_rodado': vistoria_data.get('veiculo', {}).get('km_rodado', '')  # ADICIONADO KM_RODADO
-            },
-            'questionario': vistoria_data.get('questionario', {}),
-            'pneus': vistoria_data.get('pneus', {}),
-            'nome_conferente': vistoria_data.get('nome_conferente', ''),
-            'data_vistoria': vistoria_data.get('data_vistoria', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        }
+        # Usar a função auxiliar para preparar os dados
+        dados_convertidos = prepare_vistoria_data_for_saving(vistoria_data)
         
         # Adicionar questionário (mantém compatibilidade)
         questionario = vistoria_data.get('questionario', {})

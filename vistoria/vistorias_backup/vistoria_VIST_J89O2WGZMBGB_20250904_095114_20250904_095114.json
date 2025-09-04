@@ -1,19 +1,21 @@
 {
-  "vistoria_id": "11",
-  "token": "VIST_A8PEJMVI5D27_20250831_114456",
+  "vistoria_id": "27",
+  "token": "VIST_J89O2WGZMBGB_20250904_095114",
   "dados_originais": {
     "veiculo": {
-      "placa": "ABC1245",
-      "modelo": "ASDADA",
-      "cor": "ASDA",
+      "placa": "",
+      "modelo": "ASD",
+      "cor": "ASDAS",
       "ano": "",
-      "km_rodado": "55555",
+      "km_rodado": "",
+      "proprio": true,
+      "nome_terceiro": "",
       "documento_nota_fiscal": ""
     },
     "questionario": {
       "ar_condicionado": false,
       "antenas": true,
-      "tapetes": false,
+      "tapetes": true,
       "tapete_porta_malas": false,
       "bateria": false,
       "retrovisor_direito": false,
@@ -34,12 +36,12 @@
       "pneu_step": false
     },
     "pneus": {},
-    "nome_conferente": "ASSADAS",
-    "nome_cliente": "ASDSA",
-    "data_vistoria": "2025-08-31T11:44",
+    "nome_conferente": "Murillo Ribeiro",
+    "nome_cliente": "ASDASD",
+    "data_vistoria": "2025-09-04T12:51:14.539Z",
     "ar_condicionado": false,
     "antenas": true,
-    "tapetes": false,
+    "tapetes": true,
     "tapete_porta_malas": false,
     "bateria": false,
     "retrovisor_direito": false,
@@ -72,6 +74,6 @@
       }
     ]
   },
-  "created_at": "2025-08-31T11:44:56.704942",
+  "created_at": "2025-09-04T09:51:14.719667",
   "backup_version": "1.0"
 }

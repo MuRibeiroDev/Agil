@@ -16,6 +16,7 @@ from routes.vistoria_routes import vistoria_bp
 from routes.assinatura_routes import assinatura_bp
 from routes.api_routes import api_bp
 from routes.pdf_routes import pdf_bp
+from routes.auth_routes import auth_bp
 
 
 def create_app():
@@ -59,6 +60,7 @@ def create_app():
         sys.exit(1)
     
     # Registrar blueprints
+    app.register_blueprint(auth_bp)
     app.register_blueprint(vistoria_bp)
     app.register_blueprint(assinatura_bp)
     app.register_blueprint(api_bp)

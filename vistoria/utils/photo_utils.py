@@ -21,13 +21,35 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
     Returns:
         list: Lista de IDs das fotos inseridas
     """
+    print(f"🔍 [PHOTO_UTILS] ========== INÍCIO PROCESSAMENTO ==========")
+    print(f"🔍 [PHOTO_UTILS] Vistoria ID: {vistoria_id}, Token: {vistoria_token}")
     print(f"🔍 [PHOTO_UTILS] Iniciando process_vistoria_photos com {len(photos_data)} fotos")
+    
+    # CORREÇÃO: Remover duplicatas baseadas na categoria
+    seen_categories = set()
+    unique_photos = []
+    
+    for i, photo in enumerate(photos_data):
+        category = photo.get('category') or photo.get('name', 'unknown')
+        print(f"🔍 [DEDUP] Verificando foto {i+1}: categoria='{category}', type='{photo.get('type')}'")
+        
+        if category not in seen_categories:
+            seen_categories.add(category)
+            unique_photos.append(photo)
+            print(f"✅ [DEDUP] Foto aceita: {category}")
+        else:
+            print(f"❌ [DEDUP] Foto duplicada ignorada: {category} (type={photo.get('type')})")
+    
+    print(f"🔍 [DEDUP] Resultado: {len(photos_data)} -> {len(unique_photos)} fotos (removidas {len(photos_data) - len(unique_photos)} duplicatas)")
+    
     foto_ids = []
     vistoria_db = get_vistoria_db()
     
     try:
-        print(f"🔍 DEBUG: Processando {len(photos_data)} fotos")
-        for i, photo in enumerate(photos_data):
+        print(f"🔍 DEBUG: Processando {len(unique_photos)} fotos únicas")
+        for i, photo in enumerate(unique_photos):
+            print(f"🔍 DEBUG: ========== FOTO {i+1}/{len(unique_photos)} ==========")
+            print(f"🔍 DEBUG: Dados completos da foto: {photo}")
             print(f"🔍 DEBUG: Foto {i+1}: categoria='{photo.get('category')}', name='{photo.get('name')}', type='{photo.get('type')}'")
             category = photo.get('category') or photo.get('name', 'unknown')
             
@@ -175,6 +197,10 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
                 }
             
             # Inserir foto no banco
+            print(f"🔍 [PHOTO_UTILS] ========== INSERINDO NO BANCO ==========")
+            print(f"🔍 [PHOTO_UTILS] Categoria: {category}")
+            print(f"🔍 [PHOTO_UTILS] Arquivo info: {arquivo_info}")
+            
             foto_id = vistoria_db.inserir_foto_vistoria(
                 vistoria_id=vistoria_id,
                 categoria=category,
@@ -182,8 +208,11 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
             )
             
             foto_ids.append(foto_id)
-            print(f"✅ Foto inserida no banco: {category} - ID: {foto_id}")
+            print(f"✅ [PHOTO_UTILS] Foto inserida no banco: {category} - ID: {foto_id}")
         
+        print(f"🔍 [PHOTO_UTILS] ========== FIM PROCESSAMENTO ==========")
+        print(f"🔍 [PHOTO_UTILS] Total de fotos processadas: {len(foto_ids)}")
+        print(f"🔍 [PHOTO_UTILS] IDs das fotos: {foto_ids}")
         return foto_ids
         
     except Exception as e:

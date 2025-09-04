@@ -1,21 +1,24 @@
 {
-  "vistoria_id": "5",
-  "token": "VIST_ULY4BQ2Y6VE7_20250903_172414",
+  "vistoria_id": "23",
+  "token": "VIST_HGNSWQGH2XUK_20250904_093822",
   "dados_originais": {
     "veiculo": {
       "placa": "",
-      "modelo": "SDFSDF",
-      "cor": "SDFSD",
+      "modelo": "DASDAS",
+      "cor": "DASDAS",
       "ano": "",
       "km_rodado": "",
+      "proprio": false,
+      "nome_terceiro": "ASDDA",
+      "nome_cliente": "",
       "documento_nota_fiscal": ""
     },
     "questionario": {
       "ar_condicionado": false,
-      "antenas": false,
+      "antenas": true,
       "tapetes": false,
       "tapete_porta_malas": false,
-      "bateria": true,
+      "bateria": false,
       "retrovisor_direito": false,
       "retrovisor_esquerdo": false,
       "extintor": false,
@@ -34,14 +37,13 @@
       "pneu_step": false
     },
     "pneus": {},
-    "nome_conferente": "ggggggg",
-    "nome_cliente": "SDSDF",
-    "data_vistoria": "2025-09-03T17:23",
+    "nome_conferente": "Murillo Ribeiro",
+    "data_vistoria": "2025-09-04T12:38:22.623Z",
     "ar_condicionado": false,
-    "antenas": false,
+    "antenas": true,
     "tapetes": false,
     "tapete_porta_malas": false,
-    "bateria": true,
+    "bateria": false,
     "retrovisor_direito": false,
     "retrovisor_esquerdo": false,
     "extintor": false,
@@ -72,6 +74,6 @@
       }
     ]
   },
-  "created_at": "2025-09-03T17:24:14.689457",
+  "created_at": "2025-09-04T09:38:22.847702",
   "backup_version": "1.0"
 }

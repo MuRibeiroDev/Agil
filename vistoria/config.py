@@ -3,6 +3,10 @@
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Carrega variáveis do arquivo .env
+load_dotenv()
 
 # Configurações do banco de dados
 DATABASE_CONFIG = {
@@ -52,6 +56,33 @@ def get_database_url():
     """Retorna URL de conexão do PostgreSQL"""
     config = DATABASE_CONFIG
     return f"postgresql://{config['user']}:{config['password']}@{config['host']}:{config['port']}/{config['database']}"
+
+# Função para carregar usuários do .env
+def load_users_from_env():
+    """Carrega usuários do arquivo .env"""
+    users = {}
+    i = 1
+    while True:
+        user_data = os.getenv(f'USER_{i}')
+        if not user_data:
+            break
+        
+        try:
+            name, code = user_data.split('|')
+            users[code] = name
+        except ValueError:
+            print(f"⚠️  Formato inválido para USER_{i}: {user_data}")
+            print("   Formato esperado: NOME|CODIGO")
+        
+        i += 1
+    
+    if not users:
+        print("⚠️  Nenhum usuário encontrado no arquivo .env")
+        print("   Configure usuários no formato USER_1=Nome|codigo")
+    else:
+        print(f"✅ {len(users)} usuários carregados do arquivo .env")
+    
+    return users
 
 # Função para validar configurações
 def validate_config():

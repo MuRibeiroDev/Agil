@@ -172,8 +172,19 @@ class VistoriaPDFGenerator:
         
         # Dados do veículo
         veiculo = data.get('veiculo', {})
+        
+        # Debug: verificar nome do cliente
+        nome_cliente = data.get('nome_cliente')
+        nome_terceiro = data.get('nome_terceiro')
+        print(f"📄 DEBUG PDF_UTILS - nome_cliente recebido: '{nome_cliente}'")
+        print(f"📄 DEBUG PDF_UTILS - nome_terceiro recebido: '{nome_terceiro}'")
+        
+        # Lógica: usar nome_terceiro se nome_cliente estiver vazio
+        nome_para_exibir = nome_cliente if nome_cliente else (nome_terceiro if nome_terceiro else 'N/A')
+        print(f"📄 DEBUG PDF_UTILS - nome que será exibido: '{nome_para_exibir}'")
+        
         vehicle_data = [
-            ['Nome do Cliente:', data.get('nome_cliente', 'N/A')],
+            ['Nome do Cliente:', nome_para_exibir],
             ['Placa:', veiculo.get('placa', 'N/A') or 'Não informado'],
             ['Modelo:', veiculo.get('modelo', 'N/A')],
             ['Cor:', veiculo.get('cor', 'N/A')],
@@ -386,10 +397,6 @@ class VistoriaPDFGenerator:
                             elements.append(photo_img)
                             elements.append(Spacer(1, 5))
                             
-                            # Info da foto
-                            info_text = f"Arquivo: {os.path.basename(path)}"
-                            info_para = Paragraph(info_text, self.styles['InfoValue'])
-                            elements.append(info_para)
                             
                             found = True
                             print(f"✅ Foto carregada com sucesso: {path}")
@@ -424,8 +431,17 @@ class VistoriaPDFGenerator:
         elements.append(section_title)
         
         # Informações da assinatura
+        nome_cliente_assinatura = data.get('nome_cliente')
+        nome_terceiro_assinatura = data.get('nome_terceiro')
+        print(f"📄 DEBUG PDF_UTILS - nome_cliente para assinatura: '{nome_cliente_assinatura}'")
+        print(f"📄 DEBUG PDF_UTILS - nome_terceiro para assinatura: '{nome_terceiro_assinatura}'")
+        
+        # Lógica: usar nome_terceiro se nome_cliente estiver vazio
+        nome_assinatura = nome_cliente_assinatura if nome_cliente_assinatura else (nome_terceiro_assinatura if nome_terceiro_assinatura else 'N/A')
+        print(f"📄 DEBUG PDF_UTILS - nome que será usado na assinatura: '{nome_assinatura}'")
+        
         assinatura_info = [
-            ['Cliente:', data.get('nome_cliente', 'N/A')],
+            ['Cliente:', nome_assinatura],
             ['Data da Assinatura:', data.get('assinado_em', 'N/A') or 'Assinado eletronicamente'],
             ['Status:', 'Assinado digitalmente']
         ]

@@ -46,8 +46,11 @@
                         </div>
                     </div>
                     <div class="header-meta">
-                        <div class="inspection-badge">
-                            <span class="badge-label">Vistoria Completa</span>
+                        <div class="user-info">
+                            <span class="vistoriador-nome" id="vistoriador-nome">Carregando...</span>
+                            <button type="button" id="logout-btn" class="logout-btn" title="Sair do sistema">
+                                 Sair
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -70,10 +73,6 @@
                     </div>
                     <div class="progress-step" data-step="4">
                         <span class="step-number">4</span>
-                        <span class="step-label">Conferente</span>
-                    </div>
-                    <div class="progress-step" data-step="5">
-                        <span class="step-number">5</span>
                         <span class="step-label">Assinatura</span>
                     </div>
                 </div>
@@ -542,25 +541,8 @@
                     </div>
                 </section>
 
-                <!-- Passo 4: Informações do Conferente -->
+                <!-- Passo 4: Revisão da Vistoria -->
                 <section class="section step-content hidden" id="step-4">
-                    <h2 class="section-title">
-                         Informações do Conferente
-                    </h2>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="nome_conferente" class="label">Nome do Conferente *</label>
-                            <input type="text" id="nome_conferente" name="nome_conferente" class="input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="data_vistoria" class="label">Data e Hora da Vistoria</label>
-                            <input type="datetime-local" id="data_vistoria" name="data_vistoria" class="input" readonly>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Passo 5: Revisão da Vistoria -->
-                <section class="section step-content hidden" id="step-5">
                     <h2 class="section-title">
                         📋 Revisão da Vistoria
                     </h2>
@@ -610,11 +592,11 @@
                         </div>
 
                         <div class="review-section">
-                            <h3 class="review-title">👤 Dados do Conferente</h3>
+                            <h3 class="review-title">👤 Dados do Vistoriador</h3>
                             <div class="review-grid">
                                 <div class="review-item">
-                                    <span class="review-label">Nome:</span>
-                                    <span class="review-value" id="review-conferente">-</span>
+                                    <span class="review-label">Vistoriador:</span>
+                                    <span class="review-value" id="review-vistoriador">-</span>
                                 </div>
                                 <div class="review-item">
                                     <span class="review-label">Data/Hora:</span>
@@ -634,8 +616,8 @@
                     </div>
                 </section>
 
-                <!-- Passo 6: Assinatura Digital -->
-                <section class="section step-content hidden" id="step-6">
+                <!-- Passo 5: Assinatura Digital -->
+                <section class="section step-content hidden" id="step-5">
                     <h2 class="section-title">
                         ✍️ Assinatura Digital do Cliente
                     </h2>

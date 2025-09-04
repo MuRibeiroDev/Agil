@@ -1,12 +1,14 @@
 """
 Rotas principais da vistoria
 """
-from flask import Blueprint, render_template, send_from_directory
+from flask import Blueprint, render_template, send_from_directory, session
+from routes.auth_routes import require_login
 
 vistoria_bp = Blueprint('vistoria', __name__)
 
 
 @vistoria_bp.route('/')
+@require_login
 def index():
     """Página principal da vistoria"""
     return render_template('index.html')

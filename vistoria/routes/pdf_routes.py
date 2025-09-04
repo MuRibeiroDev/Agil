@@ -30,9 +30,13 @@ def gerar_pdf_vistoria(token):
         
         # Debug: Mostrar campos da assinatura
         print(f"🖊️ DEBUG - Campos de assinatura:")
+        print(f"   nome_cliente: '{vistoria.get('nome_cliente')}'")
+        print(f"   nome_terceiro: '{vistoria.get('nome_terceiro')}'") 
+        print(f"   assinatura_cliente_nome: '{vistoria.get('assinatura_cliente_nome')}'")
+        print(f"   proprio: {vistoria.get('proprio')}")
         for k, v in vistoria.items():
-            if any(word in k.lower() for word in ['assinatura', 'cliente']):
-                print(f"   {k}: {v}")
+            if any(word in k.lower() for word in ['nome', 'cliente', 'terceiro']):
+                print(f"   {k}: '{v}'")
         
         # Buscar fotos da vistoria
         fotos = db.buscar_fotos_vistoria(vistoria['id'])
@@ -46,6 +50,7 @@ def gerar_pdf_vistoria(token):
         pdf_data = {
             'token': vistoria.get('token'),
             'nome_cliente': vistoria.get('nome_cliente'),
+            'nome_terceiro': vistoria.get('nome_terceiro'),  # Adicionar nome_terceiro
             'nome_conferente': vistoria.get('nome_conferente'),
             'data_vistoria': vistoria.get('criado_em'),
             'status': vistoria.get('status'),
@@ -68,6 +73,12 @@ def gerar_pdf_vistoria(token):
             'assinatura_checksum': vistoria.get('assinatura_checksum'),
             'cliente_nome_assinatura': vistoria.get('assinatura_cliente_nome')
         }
+        
+        # Debug: Mostrar o que será passado para o PDF
+        print(f"📄 DEBUG - Dados que serão passados para o PDF:")
+        print(f"   nome_cliente no pdf_data: '{pdf_data.get('nome_cliente')}'")
+        print(f"   nome_terceiro no pdf_data: '{pdf_data.get('nome_terceiro')}'")
+        print(f"   cliente_nome_assinatura no pdf_data: '{pdf_data.get('cliente_nome_assinatura')}'")
         
         # Adicionar campos do questionário
         questionnaire_fields = [

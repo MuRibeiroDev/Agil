@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('   - Preview documento:', !!documentPreview, documentPreview);
     }, 100);
     
+    // Inicializar diretamente sem verificação de autenticação para evitar loop
     initApp();
 });
 
@@ -26,8 +27,67 @@ const AppState = {
     documentData: null,  // Dados processados do documento
     formData: {},
     currentStep: 1,
-    totalSteps: 6
+    totalSteps: 5,  // Reduzido de 6 para 5 (removeu conferente)
+    vistoriadorLogado: null  // Dados do vistoriador logado
 };
+
+// Inicializar interface do usuário
+async function initUserInterface() {
+    // Obter dados do vistoriador logado via API
+    try {
+        const response = await fetch('/api/check-session');
+        const data = await response.json();
+        
+        if (data.logged_in) {
+            AppState.vistoriadorLogado = {
+                nome: data.vistoriador,
+                timestamp: new Date().getTime()
+            };
+            
+            // Mostrar nome do vistoriador logado
+            const nomeElement = document.getElementById('vistoriador-nome');
+            if (nomeElement) {
+                nomeElement.textContent = data.vistoriador;
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao obter dados do vistoriador:', error);
+    }
+    
+    // Configurar botão de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async function() {
+            if (confirm('Tem certeza que deseja sair do sistema?')) {
+                await logout();
+            }
+        });
+    }
+}
+
+// Função de logout
+async function logout() {
+    try {
+        const response = await fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        // Sempre limpar dados locais e redirecionar, independente da resposta
+        AppState.vistoriadorLogado = null;
+        
+        // Redirecionar para login
+        window.location.href = '/login';
+        
+    } catch (error) {
+        console.error('❌ Erro no logout:', error);
+        // Mesmo com erro, limpar e redirecionar
+        AppState.vistoriadorLogado = null;
+        window.location.href = '/login';
+    }
+}
 
 // Utilitários de performance para mobile
 const PerformanceUtils = {
@@ -101,6 +161,7 @@ function initApp() {
         initRemoteSignature();
         initFormHandlers();
         initStepNavigation();
+        initUserInterface(); // Nova função para interface do usuário
         
         // Inicializar toggle de veículo com pequeno delay para garantir que DOM está pronto
         setTimeout(() => {
@@ -1093,12 +1154,11 @@ function validateBasicFields() {
     // Limpar erros anteriores
     clearValidationErrors();
     
-    // Validar campos obrigatórios básicos (nome_cliente, cor, modelo e nome_conferente)
+    // Validar apenas campos básicos (nome_conferente é automático via login)
     const requiredFields = [
         { id: 'nome_cliente', name: 'Nome do Cliente' },
         { id: 'cor', name: 'Cor' },
-        { id: 'modelo', name: 'Modelo' },
-        { id: 'nome_conferente', name: 'Nome do Conferente' }
+        { id: 'modelo', name: 'Modelo' }
     ];
     
     requiredFields.forEach(field => {
@@ -1126,12 +1186,11 @@ function validateForm() {
     // Limpar erros anteriores
     clearValidationErrors();
     
-    // Validar campos obrigatórios (nome_cliente, cor, modelo e nome_conferente)
+    // Validar apenas campos básicos (nome_conferente é automático via login)
     const requiredFields = [
         { id: 'nome_cliente', name: 'Nome do Cliente' },
         { id: 'cor', name: 'Cor' },
-        { id: 'modelo', name: 'Modelo' },
-        { id: 'nome_conferente', name: 'Nome do Conferente' }
+        { id: 'modelo', name: 'Modelo' }
     ];
     
     requiredFields.forEach(field => {
@@ -1294,7 +1353,10 @@ async function collectFormData() {
     if (!data.veiculo.km_rodado) data.veiculo.km_rodado = '';  // Campo KM como número
     if (data.veiculo.proprio === undefined) data.veiculo.proprio = true; // Default para próprio
     if (!data.veiculo.nome_terceiro) data.veiculo.nome_terceiro = ''; // Vazio se próprio
-    if (!data.nome_conferente) data.nome_conferente = '';
+    
+    // Nome do conferente vem do vistoriador logado
+    data.nome_conferente = AppState.vistoriadorLogado ? AppState.vistoriadorLogado.nome : '';
+    
     if (!data.nome_cliente) data.nome_cliente = '';  // Campo obrigatório nome do cliente
     if (!data.data_vistoria) data.data_vistoria = new Date().toISOString();
     
@@ -2515,13 +2577,13 @@ function showStep(stepNumber) {
     // Atualizar estado
     AppState.currentStep = stepNumber;
     
-    // Preencher dados da revisão se for o passo 5
-    if (stepNumber === 5) {
+    // Preencher dados da revisão se for o passo 4
+    if (stepNumber === 4) {
         populateReviewData();
     }
     
-    // Re-inicializar assinatura se for o passo 6
-    if (stepNumber === 6) {
+    // Re-inicializar assinatura se for o passo 5
+    if (stepNumber === 5) {
         setTimeout(() => {
             initSignature();
         }, 200); // Pequeno delay para garantir que o canvas está visível
@@ -2635,9 +2697,7 @@ function validateCurrentStep() {
             return true; // Questionário é opcional
         case 3: // Fotos
             return true; // Fotos serão validadas no final
-        case 4: // Conferente
-            return validateConferente();
-        case 5: // Assinatura
+        case 4: // Assinatura
             return true; // Será validada no final
         default:
             return true;
@@ -2664,21 +2724,6 @@ function validateVehicleInfo() {
     
     
     return isValid;
-}
-
-// Validar informações do conferente
-function validateConferente() {
-    const nomeConferente = document.getElementById('nome_conferente');
-    
-    // Limpar erros visuais anteriores
-    clearFieldErrors([nomeConferente]);
-    
-    if (!nomeConferente || !nomeConferente.value.trim()) {
-        addFieldError(nomeConferente);
-        return false;
-    }
-    
-    return true;
 }
 
 // Adicionar erro visual ao campo
@@ -2839,18 +2884,13 @@ function populateReviewData() {
         photosContainer.innerHTML = '<p class="review-no-photos">Nenhuma foto adicionada</p>';
     }
     
-    // Dados do conferente
-    document.getElementById('review-conferente').textContent = document.getElementById('nome_conferente').value || '-';
+    // Dados do vistoriador (pego da sessão)
+    document.getElementById('review-vistoriador').textContent = AppState.vistoriadorLogado ? AppState.vistoriadorLogado.nome : '-';
     
-    // Data e hora
-    const dataVistoria = document.getElementById('data_vistoria').value;
-    if (dataVistoria) {
-        const date = new Date(dataVistoria);
-        const formatted = date.toLocaleString('pt-BR');
-        document.getElementById('review-data').textContent = formatted;
-    } else {
-        document.getElementById('review-data').textContent = '-';
-    }
+    // Data e hora atual
+    const agora = new Date();
+    const formatted = agora.toLocaleString('pt-BR');
+    document.getElementById('review-data').textContent = formatted;
 }
 
 // ========================

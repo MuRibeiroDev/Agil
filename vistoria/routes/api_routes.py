@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from db import get_vistoria_db
 from utils import save_uploaded_photo, save_signature_image, save_vistoria_complete
+from .assinatura_routes import prepare_vistoria_data_for_saving
 
 api_bp = Blueprint('api', __name__)
 
@@ -31,28 +32,15 @@ def salvar_vistoria_completa():
                 print(f"   Photo {i+1}: category={photo.get('category')}, name={photo.get('name')}, type={photo.get('type')}")
         print(f"🔍 DADOS RECEBIDOS - Documento direto: {'presente' if data.get('documento') else 'ausente'}")
         print(f"🔍 DADOS RECEBIDOS - Assinatura: {'presente' if data.get('assinatura') else 'ausente'}")
+        print(f"🔍 DEBUG: nome_cliente recebido: '{data.get('nome_cliente', 'AUSENTE')}'")
+        print(f"🔍 DEBUG: nome_terceiro recebido: '{data.get('veiculo', {}).get('nome_terceiro', 'AUSENTE')}'")
+        
         
         # Log completo apenas se necessário para debug (comentado para não sobrecarregar)
         # print(f"🔍 Dados completos recebidos: {json.dumps(data, indent=2, ensure_ascii=False)}")
         
-        # Converter dados do formato frontend para backend
-        dados_convertidos = {
-            'veiculo': {
-                'placa': data.get('veiculo', {}).get('placa', ''),
-                'modelo': data.get('veiculo', {}).get('modelo', ''),
-                'cor': data.get('veiculo', {}).get('cor', ''),
-                'ano': data.get('veiculo', {}).get('ano', ''),
-                'km_rodado': data.get('veiculo', {}).get('km_rodado', ''),  # Novo campo
-                'proprio': data.get('veiculo', {}).get('proprio', True),  # Campo próprio/terceiro
-                'nome_terceiro': data.get('veiculo', {}).get('nome_terceiro', ''),  # Nome do terceiro
-                'documento_nota_fiscal': ''  # Será atualizado se houver upload
-            },
-            'questionario': data.get('questionario', {}),
-            'pneus': data.get('pneus', {}),  # Adicionar dados dos pneus
-            'nome_conferente': data.get('nome_conferente', ''),
-            'nome_cliente': data.get('nome_cliente', ''),  # Novo campo nome do cliente
-            'data_vistoria': data.get('data_vistoria', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        }
+        # Usar a função auxiliar para preparar os dados
+        dados_convertidos = prepare_vistoria_data_for_saving(data)
         
         print(f"🔍 DEBUG: Dados dos pneus: {dados_convertidos['pneus']}")
         
