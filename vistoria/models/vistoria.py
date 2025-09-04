@@ -61,6 +61,7 @@ class VistoriaModel:
     macaco: str = 'nao'
     chave_roda: str = 'nao'
     pneu_step: str = 'nao'
+    carregador_eletrico: str = 'nao'
     
     # Marcas dos pneus
     marca_pneu_dianteiro_esquerdo: Optional[str] = None

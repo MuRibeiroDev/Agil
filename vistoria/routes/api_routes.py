@@ -46,6 +46,8 @@ def salvar_vistoria_completa():
         
         # Adicionar questionário (mantém compatibilidade)
         questionario = data.get('questionario', {})
+        print(f"🔌 DEBUG: Questionário recebido: {questionario}")
+        print(f"🔌 DEBUG: Carregador elétrico no questionário: {questionario.get('carregador_eletrico', 'NÃO ENCONTRADO')}")
         for key, value in questionario.items():
             dados_convertidos[key] = value
         

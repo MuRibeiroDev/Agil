@@ -85,7 +85,8 @@ def gerar_pdf_vistoria(token):
             'ar_condicionado', 'antenas', 'tapetes', 'tapete_porta_malas', 'bateria',
             'retrovisor_direito', 'retrovisor_esquerdo', 'extintor', 'roda_comum', 'roda_especial',
             'chave_principal', 'chave_reserva', 'manual', 'documento', 'nota_fiscal',
-            'limpador_dianteiro', 'limpador_traseiro', 'triangulo', 'macaco', 'chave_roda', 'pneu_step'
+            'limpador_dianteiro', 'limpador_traseiro', 'triangulo', 'macaco', 'chave_roda', 'pneu_step',
+            'carregador_eletrico'  # Novo campo adicionado
         ]
         
         for field in questionnaire_fields:

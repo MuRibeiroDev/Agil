@@ -910,6 +910,11 @@ function collectVistoriaData() {
         if (input.type === 'checkbox') {
             // Para checkboxes, verificar se está marcado
             data.questionario[name] = input.checked;
+            
+            // Debug para carregador elétrico
+            if (name === 'carregador_eletrico') {
+                console.log(`🔌 DEBUG: Carregador elétrico - name: ${name}, checked: ${input.checked}`);
+            }
         } else if (input.type === 'radio') {
             // Para radio buttons, só adicionar se estiver selecionado
             if (input.checked) {

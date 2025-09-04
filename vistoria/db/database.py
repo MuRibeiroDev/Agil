@@ -142,7 +142,7 @@ class VistoriaDatabase:
                 ar_condicionado, antenas, tapetes, tapete_porta_malas, bateria,
                 retrovisor_direito, retrovisor_esquerdo, extintor, roda_comum, roda_especial,
                 chave_principal, chave_reserva, manual, documento, nota_fiscal,
-                limpador_dianteiro, limpador_traseiro, triangulo, macaco, chave_roda, pneu_step,
+                limpador_dianteiro, limpador_traseiro, triangulo, macaco, chave_roda, pneu_step, carregador_eletrico,
                 marca_pneu_dianteiro_esquerdo, marca_pneu_dianteiro_direito,
                 marca_pneu_traseiro_esquerdo, marca_pneu_traseiro_direito,
                 token_expira_em, status
@@ -150,7 +150,7 @@ class VistoriaDatabase:
                 %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 CURRENT_TIMESTAMP + INTERVAL '24 hours', 'aguardando_assinatura'
             ) RETURNING id, token
@@ -186,7 +186,7 @@ class VistoriaDatabase:
                     'ar_condicionado', 'antenas', 'tapetes', 'tapete_porta_malas', 'bateria',
                     'retrovisor_direito', 'retrovisor_esquerdo', 'extintor', 'roda_comum', 'roda_especial',
                     'chave_principal', 'chave_reserva', 'manual', 'documento', 'nota_fiscal',
-                    'limpador_dianteiro', 'limpador_traseiro', 'triangulo', 'macaco', 'chave_roda', 'pneu_step'
+                    'limpador_dianteiro', 'limpador_traseiro', 'triangulo', 'macaco', 'chave_roda', 'pneu_step', 'carregador_eletrico'
                 ]
                 
                 for field in questionario_fields:
@@ -262,6 +262,7 @@ class VistoriaDatabase:
                 questionario.get('macaco', False),
                 questionario.get('chave_roda', False),
                 questionario.get('pneu_step', False),
+                questionario.get('carregador_eletrico', False),
                 
                 # Marcas dos pneus
                 pneus.get('marca_pneu_dianteiro_esquerdo', ''),

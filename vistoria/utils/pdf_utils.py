@@ -237,13 +237,21 @@ class VistoriaPDFGenerator:
             'triangulo': 'Triângulo',
             'macaco': 'Macaco',
             'chave_roda': 'Chave de Roda',
-            'pneu_step': 'Pneu Step'
+            'pneu_step': 'Pneu Step',
+            'carregador_eletrico': 'Carregador Elétrico'
         }
         
         # Criar dados da tabela
         questionnaire_data = [['Item', 'Status']]
         for field, label in questionnaire_fields.items():
             value = data.get(field, False)
+            
+            # Converter valor para booleano (lidar com strings "true"/"false")
+            if isinstance(value, str):
+                value = value.lower() in ['true', '1', 'yes', 'sim']
+            elif value is None:
+                value = False
+            
             status = '✓ Sim' if value else '✗ Não'
             questionnaire_data.append([label, status])
         
