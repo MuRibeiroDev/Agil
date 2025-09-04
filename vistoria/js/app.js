@@ -261,17 +261,17 @@ function initDocumentHandler() {
     }
 }
 
-// Handler para upload de documentos (baseado no de fotos)
+// Handler para upload de documentos (baseado no de fotos) - SUPORTE A MÚLTIPLOS ARQUIVOS
 async function handleDocumentUpload(event) {
-    console.log('📁 Iniciando upload de documento...');
+    console.log('📁 Iniciando upload de documentos...');
     const input = event.target;
-    const file = input.files[0];
+    const files = Array.from(input.files);
     
-    if (!file) return;
+    if (!files.length) return;
     
-    console.log('📄 Arquivo selecionado:', file);
+    console.log(`📄 ${files.length} arquivo(s) selecionado(s):`, files);
     
-    // Validar tipo de arquivo
+    // Validar cada arquivo
     const allowedTypes = [
         'application/pdf',
         'image/jpeg', 'image/jpg', 'image/png',
@@ -279,18 +279,27 @@ async function handleDocumentUpload(event) {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
     
-    console.log('🔍 Tipo do arquivo:', file.type);
+    const validFiles = [];
     
-    if (!allowedTypes.includes(file.type)) {
-        notifications.error('Arquivo inválido', 'Por favor, selecione apenas PDF, imagens ou documentos Word.');
-        input.value = '';
-        return;
+    for (const file of files) {
+        console.log('🔍 Validando arquivo:', file.name, 'tipo:', file.type);
+        
+        if (!allowedTypes.includes(file.type)) {
+            notifications.error('Arquivo inválido', `${file.name}: Por favor, selecione apenas PDF, imagens ou documentos Word.`);
+            continue;
+        }
+        
+        // Validar tamanho (máximo 10MB por arquivo)
+        console.log('📏 Tamanho do arquivo:', file.size, 'bytes');
+        if (file.size > 10 * 1024 * 1024) {
+            notifications.error('Arquivo muito grande', `${file.name}: Documento deve ter no máximo 10MB.`);
+            continue;
+        }
+        
+        validFiles.push(file);
     }
     
-    // Validar tamanho (máximo 10MB)
-    console.log('📏 Tamanho do arquivo:', file.size, 'bytes');
-    if (file.size > 10 * 1024 * 1024) {
-        notifications.error('Arquivo muito grande', 'Documento deve ter no máximo 10MB.');
+    if (!validFiles.length) {
         input.value = '';
         return;
     }
@@ -302,91 +311,177 @@ async function handleDocumentUpload(event) {
         preview.innerHTML = `
             <div class="photo-processing">
                 <div class="spinner"></div>
-                <span>Processando documento...</span>
+                <span>Processando ${validFiles.length} documento(s)...</span>
             </div>
         `;
         
         try {
-            const reader = new FileReader();
+            // Processar todos os arquivos
+            const processedDocuments = [];
             
-            reader.onload = function(e) {
-                const fileName = file.name;
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+            for (let i = 0; i < validFiles.length; i++) {
+                const file = validFiles[i];
                 
-                let icon = '📄';
-                let displayContent = '';
-                
-                if (file.type.includes('pdf')) {
-                    icon = '📕';
-                    displayContent = `<div class="document-icon-large">${icon}</div>`;
-                } else if (file.type.includes('image')) {
-                    icon = '🖼️';
-                    // Para imagens, mostrar preview igual às fotos
-                    displayContent = `<img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview do documento')">`;
-                } else if (file.type.includes('word')) {
-                    icon = '📝';
-                    displayContent = `<div class="document-icon-large">${icon}</div>`;
-                }
-                
-                preview.innerHTML = `
-                    ${displayContent}
-                    <button type="button" class="photo-remove" onclick="removeDocument()">×</button>
-                    <span class="photo-success">✓ Documento selecionado</span>
-                    <div class="document-info-overlay">
-                        <div class="document-name">${fileName}</div>
-                        <div class="document-size">${fileSize} MB</div>
-                    </div>
-                `;
-                preview.classList.add('has-image'); // Usar a mesma classe das fotos
-                
-                // Salvar documento separadamente das fotos
-                const documentData = {
-                    file: file,
-                    url: e.target.result,
-                    name: 'documento_nota_fiscal',
-                    timestamp: new Date().toISOString(),
-                    fileName: fileName,
-                    fileSize: file.size,
-                    fileType: file.type
-                };
-                
-                // NÃO adicionar ao AppState.photos para evitar processamento como foto
-                // AppState.photos['documento_nota_fiscal'] = documentData;
-                AppState.documentFile = file;
-                AppState.documentData = documentData;
-                
-                console.log('💾 Documento salvo no AppState:', documentData);
-                
-                notifications.success('Documento selecionado', `${fileName} adicionado com sucesso.`);
-            };
+                await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const documentData = {
+                            file: file,
+                            url: e.target.result,
+                            name: `documento_${i + 1}`,
+                            category: 'documento_nota_fiscal',
+                            timestamp: new Date().toISOString(),
+                            fileName: file.name,
+                            fileSize: file.size,
+                            fileType: file.type
+                        };
+                        
+                        processedDocuments.push(documentData);
+                        resolve();
+                    };
+                    
+                    reader.onerror = function() {
+                        console.error('Erro ao processar:', file.name);
+                        reject(new Error(`Erro ao processar ${file.name}`));
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            }
             
-            reader.onerror = function() {
-                notifications.error('Erro no processamento', 'Não foi possível processar o documento. Tente novamente.');
-                input.value = '';
-                resetDocumentPreview(preview);
-            };
+            // Salvar todos os documentos no AppState
+            if (!AppState.documents) {
+                AppState.documents = [];
+            }
             
-            reader.readAsDataURL(file);
+            AppState.documents = processedDocuments;
+            
+            console.log('💾 Documentos salvos no AppState:', processedDocuments);
+            
+            // Atualizar preview com todos os documentos
+            updateDocumentPreview(preview, processedDocuments);
+            
+            notifications.success('Documentos selecionados', `${processedDocuments.length} documento(s) adicionado(s) com sucesso.`);
             
         } catch (error) {
-            console.error('Erro ao processar documento:', error);
-            notifications.error('Erro no processamento', 'Erro ao processar o documento. Tente novamente.');
+            console.error('Erro no processamento:', error);
+            notifications.error('Erro no processamento', 'Não foi possível processar os documentos. Tente novamente.');
             input.value = '';
             resetDocumentPreview(preview);
         }
     }
 }
 
+// Função para atualizar o preview com múltiplos documentos
+function updateDocumentPreview(preview, documents) {
+    if (!documents.length) {
+        resetDocumentPreview(preview);
+        return;
+    }
+    
+    const totalSize = documents.reduce((sum, doc) => sum + doc.fileSize, 0);
+    const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+    
+    // Criar preview para múltiplos documentos
+    let documentsHtml = '';
+    
+    documents.forEach((doc, index) => {
+        const fileName = doc.fileName;
+        const fileSize = (doc.fileSize / 1024 / 1024).toFixed(2);
+        
+        let icon = '📄';
+        let displayContent = '';
+        
+        if (doc.fileType.includes('pdf')) {
+            icon = '📕';
+            displayContent = `<div class="document-icon">${icon}</div>`;
+        } else if (doc.fileType.includes('image')) {
+            icon = '🖼️';
+            displayContent = `<div class="document-thumbnail">
+                <img src="${doc.url}" alt="Preview" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+            </div>`;
+        } else if (doc.fileType.includes('word')) {
+            icon = '📝';
+            displayContent = `<div class="document-icon">${icon}</div>`;
+        }
+        
+        documentsHtml += `
+            <div class="document-item" data-index="${index}">
+                ${displayContent}
+                <div class="document-details">
+                    <div class="document-name">${fileName}</div>
+                    <div class="document-size">${fileSize} MB</div>
+                </div>
+                <button type="button" class="document-remove" onclick="removeDocument(${index}, true, event)">×</button>
+            </div>
+        `;
+    });
+    
+    preview.innerHTML = `
+        <div class="documents-container">
+            <div class="documents-header">
+                <span class="photo-success">✓ ${documents.length} documento(s) selecionado(s)</span>
+                <span class="documents-total-size">${totalSizeMB} MB total</span>
+            </div>
+            <div class="documents-list">
+                ${documentsHtml}
+            </div>
+            <button type="button" class="documents-clear" onclick="clearAllDocuments(true, event)">Limpar Todos</button>
+        </div>
+    `;
+    preview.classList.add('has-image');
+}
+
 // Resetar preview do documento
 function resetDocumentPreview(preview) {
-    preview.innerHTML = '📄 Toque para selecionar documento';
+    preview.innerHTML = '📄 Toque para selecionar documentos';
     preview.classList.remove('has-image');
 }
 
-// Remover documento selecionado
-function removeDocument(showNotification = true) {
-    console.log('🗑️ Removendo documento...');
-    console.trace('🔍 STACK TRACE: removeDocument() chamado de:');
+// Remover documento específico ou todos
+function removeDocument(index = null, showNotification = true, event = null) {
+    // Prevenir propagação do evento para evitar abrir seletor de arquivos
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('🗑️ Removendo documento...', index !== null ? `índice ${index}` : 'todos');
+    
+    const documentInput = document.getElementById('documento_nota_fiscal');
+    const documentPreview = document.getElementById('preview_documento');
+    
+    if (index !== null && AppState.documents && AppState.documents.length > 0) {
+        // Remover documento específico
+        const removedDoc = AppState.documents.splice(index, 1)[0];
+        
+        if (AppState.documents.length > 0) {
+            // Ainda há documentos, atualizar preview
+            updateDocumentPreview(documentPreview, AppState.documents);
+            
+            if (showNotification) {
+                notifications.success('Documento removido', `${removedDoc.fileName} foi removido.`);
+            }
+        } else {
+            // Não há mais documentos, limpar tudo
+            clearAllDocuments(showNotification);
+        }
+    } else {
+        // Remover todos os documentos
+        clearAllDocuments(showNotification);
+    }
+}
+
+// Limpar todos os documentos
+function clearAllDocuments(showNotification = true, event = null) {
+    // Prevenir propagação do evento para evitar abrir seletor de arquivos
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('🗑️ Limpando todos os documentos...');
     
     const documentInput = document.getElementById('documento_nota_fiscal');
     const documentPreview = document.getElementById('preview_documento');
@@ -401,18 +496,19 @@ function removeDocument(showNotification = true) {
         console.log('✅ Preview resetado');
     }
     
-    // Limpar do AppState (tanto no formato antigo quanto no novo)
+    // Limpar do AppState (tanto formatos antigo quanto novo)
+    AppState.documents = [];
     AppState.documentFile = null;
     AppState.documentData = null;
     if (AppState.photos && AppState.photos['documento_nota_fiscal']) {
         delete AppState.photos['documento_nota_fiscal'];
     }
     
-    console.log('✅ AppState limpo:', AppState.documentFile);
+    console.log('✅ AppState limpo');
     
     // Só mostrar notificação se solicitado (não durante clearForm)
     if (showNotification) {
-        notifications.info('Documento removido', 'Nenhum documento selecionado.');
+        notifications.success('Documentos removidos', 'Todos os documentos foram removidos.');
     }
 }
 
@@ -467,7 +563,7 @@ async function handlePhotoUpload(event) {
                 
                 preview.innerHTML = `
                     <img src="${e.target.result}" alt="Preview" style="cursor: pointer;" onclick="openPhotoModal('${e.target.result}', 'Preview da foto')">
-                    <button type="button" class="photo-remove" onclick="removePhoto('${input.name}', '${previewId}')">×</button>
+                    <button type="button" class="photo-remove" onclick="removePhoto('${input.name}', '${previewId}', event)">×</button>
                     <span class="photo-success">✓ Foto capturada</span>
                 `;
                 preview.classList.add('has-image');
@@ -570,7 +666,15 @@ function resetPhotoPreview(preview) {
 }
 
 // Função para remover foto
-function removePhoto(photoName, previewId) {
+function removePhoto(photoName, previewId, event = null) {
+    // Prevenir propagação do evento para evitar abrir seletor de arquivos
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('🗑️ Removendo foto:', photoName);
+    
     // Remover do estado
     delete AppState.photos[photoName];
     
@@ -882,30 +986,42 @@ function collectVistoriaData() {
         });
     }
     
-    // Verificar se há documento e adicioná-lo
+    // Verificar se há documentos e adicioná-los (suporte a múltiplos)
     console.log('🔍 DEBUG: AppState completo:', AppState);
-    console.log('🔍 DEBUG: AppState.documentData:', AppState.documentData);
-    console.log('🔍 DEBUG: AppState.photos:', AppState.photos);
+    console.log('🔍 DEBUG: AppState.documentData (antigo):', AppState.documentData);
+    console.log('🔍 DEBUG: AppState.documents (novo):', AppState.documents);
     console.log('🔍 DEBUG: AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
     
-    // USAR O DOCUMENTO SALVO em vez do AppState atual (que pode ter sido limpo)
-    const documentData = savedDocumentData || savedDocumentInPhotos || AppState.documentData || AppState.photos['documento_nota_fiscal'];
-    console.log('🔍 DEBUG: AppState.documentData:', AppState.documentData);
-    console.log('🔍 DEBUG: AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
-    console.log('🔍 DEBUG: documentData encontrado:', documentData);
-    
-    if (documentData) {
-        console.log('📄 Adicionando documento ao array de fotos para processamento...');
-        photos_array.push({
-            category: 'documento_nota_fiscal',
-            name: 'documento_nota_fiscal',
-            url: documentData.url,
-            size: documentData.fileSize || documentData.file?.size,
-            type: documentData.fileType || documentData.file?.type || 'application/pdf'
+    // Processar múltiplos documentos (novo formato)
+    if (AppState.documents && AppState.documents.length > 0) {
+        console.log(`📄 Adicionando ${AppState.documents.length} documentos ao array de fotos...`);
+        AppState.documents.forEach((doc, index) => {
+            photos_array.push({
+                category: `documento_${index + 1}`,
+                name: `documento_${index + 1}`,
+                url: doc.url,
+                size: doc.fileSize || doc.file?.size,
+                type: doc.fileType || doc.file?.type || 'application/pdf',
+                fileName: doc.fileName
+            });
+            console.log(`� Documento ${index + 1} adicionado: ${doc.fileName}`);
         });
-        console.log('📄 Documento adicionado ao array de fotos');
     } else {
-        console.log('❌ Nenhum documento encontrado para adicionar');
+        // Fallback para formato antigo (single document)
+        const documentData = savedDocumentData || savedDocumentInPhotos || AppState.documentData || AppState.photos['documento_nota_fiscal'];
+        console.log('🔍 DEBUG: documentData encontrado (formato antigo):', documentData);
+        
+        if (documentData) {
+            console.log('📄 Adicionando documento (formato antigo) ao array de fotos...');
+            photos_array.push({
+                category: 'documento_nota_fiscal',
+                name: 'documento_nota_fiscal',
+                url: documentData.url,
+                size: documentData.fileSize || documentData.file?.size,
+                type: documentData.fileType || documentData.file?.type || 'application/pdf'
+            });
+            console.log('📄 Documento adicionado ao array de fotos');
+        }
     }
     
     data.photos = photos_array;
@@ -1578,11 +1694,12 @@ function clearForm() {
     AppState.photos = {};
     AppState.uploadedPhotos = [];
     AppState.signatures.cliente = null;
-    AppState.documentFile = null;  // Limpar documento
-    AppState.documentData = null;  // Limpar dados do documento
+    AppState.documentFile = null;  // Limpar documento (formato antigo)
+    AppState.documentData = null;  // Limpar dados do documento (formato antigo)
+    AppState.documents = [];       // Limpar múltiplos documentos (formato novo)
     
     // Limpar preview do documento (sem notificação durante clearForm)
-    removeDocument(false);
+    clearAllDocuments(false);
     
     // Resetar data/hora
     initDateTime();
@@ -2529,8 +2646,85 @@ function initStepNavigation() {
         PerformanceUtils.addTouchOptimizedEvent(btnAnterior, 'click', throttledPrevious);
     }
     
+    // Inicializar navegação por clique nas etapas (bolinhas numeradas)
+    initStepIndicatorNavigation();
+    
     // Mostrar primeiro passo
     showStep(1);
+}
+
+// Inicializar navegação clicável nos indicadores de etapas
+function initStepIndicatorNavigation() {
+    const progressSteps = document.querySelectorAll('.progress-step[data-step]');
+    
+    progressSteps.forEach(progressStep => {
+        const targetStep = parseInt(progressStep.getAttribute('data-step'));
+        
+        // Adicionar cursor pointer para indicar que é clicável
+        progressStep.style.cursor = 'pointer';
+        
+        // Adicionar event listener com throttle para evitar cliques duplos
+        const throttledGoToStep = PerformanceUtils.throttle(() => {
+            goToStep(targetStep);
+        }, 300);
+        
+        PerformanceUtils.addTouchOptimizedEvent(progressStep, 'click', throttledGoToStep);
+        
+        // Adicionar feedback visual hover/touch
+        progressStep.addEventListener('mouseenter', () => {
+            if (!progressStep.classList.contains('active')) {
+                progressStep.style.opacity = '0.7';
+            }
+        });
+        
+        progressStep.addEventListener('mouseleave', () => {
+            progressStep.style.opacity = '';
+        });
+    });
+}
+
+// Navegar para uma etapa específica com validações
+function goToStep(targetStep) {
+    // Validar se a etapa é válida
+    if (targetStep < 1 || targetStep > AppState.totalSteps) {
+        console.warn(`Etapa inválida: ${targetStep}`);
+        return;
+    }
+    
+    // Se está tentando ir para uma etapa anterior, permitir sempre
+    if (targetStep < AppState.currentStep) {
+        showStep(targetStep);
+        return;
+    }
+    
+    // Se está tentando pular etapas para frente, validar etapas intermediárias
+    if (targetStep > AppState.currentStep) {
+        // Tentar avançar passo a passo validando cada um
+        let canAdvance = true;
+        let currentStepTemp = AppState.currentStep;
+        
+        while (currentStepTemp < targetStep && canAdvance) {
+            // Validar etapa atual antes de avançar
+            const originalStep = AppState.currentStep;
+            AppState.currentStep = currentStepTemp; // Temporariamente definir para validação
+            
+            if (validateCurrentStep()) {
+                currentStepTemp++;
+            } else {
+                canAdvance = false;
+                showToast('Atenção', `Complete a etapa ${currentStepTemp} antes de prosseguir`, 'warning');
+            }
+            
+            AppState.currentStep = originalStep; // Restaurar estado original
+        }
+        
+        if (canAdvance) {
+            showStep(targetStep);
+        }
+    } else {
+        // Etapa atual, não fazer nada
+        return;
+    }
 }
 
 // Mostrar passo específico - otimizado para mobile

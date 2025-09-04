@@ -325,7 +325,7 @@ class VistoriaPDFGenerator:
         return elements
     
     def _create_photos_section(self, data):
-        """Criar seção de fotos"""
+        """Criar seção de fotos com layout otimizado (4 fotos por página)"""
         elements = []
         
         # Verificar se há fotos
@@ -340,85 +340,159 @@ class VistoriaPDFGenerator:
         # Adicionar informações sobre as fotos
         photo_info = Paragraph(f"Total de fotos anexadas: {len(photos)}", self.styles['NormalText'])
         elements.append(photo_info)
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 15))
         
-        # Processar cada foto
-        for i, photo in enumerate(photos):
-            try:
-                category = photo.get('category', 'N/A')
-                filename = photo.get('name', 'N/A')
-                photo_path = photo.get('path', '')
+        # Processar fotos em grupos de 4 (2x2 por página)
+        photos_per_page = 4
+        
+        for page_index in range(0, len(photos), photos_per_page):
+            # Obter até 4 fotos para esta página
+            photos_on_page = photos[page_index:page_index + photos_per_page]
+            
+            # Criar lista para armazenar as imagens processadas desta página
+            page_images = []
+            page_labels = []
+            
+            for photo in photos_on_page:
+                try:
+                    category = photo.get('category', 'N/A')
+                    filename = photo.get('name', 'N/A')
+                    photo_path = photo.get('path', '')
+                    
+                    # Label da foto
+                    label = f"{category.replace('_', ' ').title()}"
+                    page_labels.append(label)
+                    
+                    # Construir caminho absoluto para a foto
+                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    
+                    possible_paths = [
+                        photo_path if photo_path and os.path.isabs(photo_path) else None,
+                        os.path.join(base_dir, 'uploads', 'fotos', filename),
+                        os.path.join(base_dir, 'uploads', filename),
+                        os.path.join(os.getcwd(), 'uploads', 'fotos', filename),
+                        filename if os.path.exists(filename) else None
+                    ]
+                    
+                    # Filtrar None
+                    possible_paths = [p for p in possible_paths if p]
+                    
+                    found_image = None
+                    for path in possible_paths:
+                        if os.path.exists(path):
+                            try:
+                                print(f"📸 Carregando foto: {path}")
+                                
+                                # Criar imagem com tamanho otimizado para 4 fotos por página
+                                photo_img = Image(path)
+                                
+                                # Tamanho otimizado para 4 fotos (2x2)
+                                # Cada foto terá aproximadamente 2.5" x 1.8"
+                                max_width = 2.5*inch  
+                                max_height = 1.8*inch
+                                
+                                # Obter dimensões originais
+                                from PIL import Image as PILImage
+                                pil_img = PILImage.open(path)
+                                orig_width, orig_height = pil_img.size
+                                
+                                # Calcular proporção mantendo aspecto original
+                                ratio = min(max_width/orig_width, max_height/orig_height)
+                                new_width = orig_width * ratio
+                                new_height = orig_height * ratio
+                                
+                                photo_img.drawWidth = new_width
+                                photo_img.drawHeight = new_height
+                                
+                                found_image = photo_img
+                                print(f"✅ Foto carregada: {path} ({new_width:.1f}x{new_height:.1f})")
+                                break
+                                
+                            except Exception as e:
+                                print(f"⚠️ Erro ao carregar foto em {path}: {e}")
+                                continue
+                    
+                    if found_image:
+                        page_images.append(found_image)
+                    else:
+                        print(f"❌ Foto não encontrada: {filename}")
+                        # Criar placeholder para foto não encontrada
+                        placeholder = Paragraph(f"[Foto não encontrada]", self.styles['InfoValue'])
+                        page_images.append(placeholder)
+                        
+                except Exception as e:
+                    print(f"⚠️ Erro ao processar foto: {e}")
+                    error_placeholder = Paragraph(f"[Erro na foto]", self.styles['InfoValue'])
+                    page_images.append(error_placeholder)
+                    page_labels.append("Erro")
+            
+            # Organizar as fotos em uma tabela 2x2
+            if page_images:
+                # Preparar dados da tabela (2 linhas x 2 colunas)
+                table_data = []
                 
-                # Título da foto
-                photo_title = Paragraph(f"Foto {i+1}: {category.replace('_', ' ').title()}", self.styles['InfoLabel'])
-                elements.append(photo_title)
+                # Primeira linha - Fotos
+                row1_images = []
+                row1_labels = []
                 
-                # Construir caminho absoluto para a foto
-                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Voltar para pasta vistoria
+                for i in range(2):  # 2 colunas
+                    if i < len(page_images):
+                        row1_images.append(page_images[i])
+                        row1_labels.append(Paragraph(page_labels[i], self.styles['InfoLabel']))
+                    else:
+                        row1_images.append("")
+                        row1_labels.append("")
                 
-                # Tentar diferentes caminhos absolutos
-                possible_paths = [
-                    photo_path if photo_path and os.path.isabs(photo_path) else None,  # Caminho absoluto do banco
-                    os.path.join(base_dir, 'uploads', 'fotos', filename),  # Caminho padrão
-                    os.path.join(base_dir, 'uploads', filename),  # Alternativo
-                    os.path.join(os.getcwd(), 'uploads', 'fotos', filename),  # Relativo ao diretório atual
-                    filename if os.path.exists(filename) else None  # Caminho direto
-                ]
+                # Segunda linha - Fotos (se houver mais de 2)
+                row2_images = []
+                row2_labels = []
                 
-                # Filtrar None
-                possible_paths = [p for p in possible_paths if p]
+                for i in range(2, 4):  # Próximas 2 colunas
+                    if i < len(page_images):
+                        row2_images.append(page_images[i])
+                        row2_labels.append(Paragraph(page_labels[i], self.styles['InfoLabel']))
+                    else:
+                        row2_images.append("")
+                        row2_labels.append("")
                 
-                found = False
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        try:
-                            print(f"📸 Carregando foto: {path}")
-                            
-                            # Carregar e redimensionar imagem
-                            photo_img = Image(path)
-                            
-                            # Definir tamanho máximo mantendo proporção
-                            max_width = 4*inch
-                            max_height = 3*inch
-                            
-                            # Obter dimensões originais da imagem
-                            from PIL import Image as PILImage
-                            pil_img = PILImage.open(path)
-                            orig_width, orig_height = pil_img.size
-                            
-                            # Calcular nova dimensão mantendo proporção
-                            ratio = min(max_width/orig_width, max_height/orig_height)
-                            new_width = orig_width * ratio
-                            new_height = orig_height * ratio
-                            
-                            photo_img.drawWidth = new_width
-                            photo_img.drawHeight = new_height
-                            
-                            elements.append(photo_img)
-                            elements.append(Spacer(1, 5))
-                            
-                            
-                            found = True
-                            print(f"✅ Foto carregada com sucesso: {path}")
-                            break
-                            
-                        except Exception as e:
-                            print(f"⚠️ Erro ao carregar foto em {path}: {e}")
-                            continue
+                # Montar tabela apenas se há fotos na segunda linha
+                if any(row2_images):
+                    table_data = [
+                        row1_images,
+                        row1_labels,
+                        row2_images,
+                        row2_labels
+                    ]
+                else:
+                    table_data = [
+                        row1_images,
+                        row1_labels
+                    ]
                 
-                if not found:
-                    print(f"❌ Foto não encontrada: {filename}")
-                    print(f"   Caminhos testados: {possible_paths}")
-                    not_found = Paragraph(f"[Foto não encontrada: {filename}]", self.styles['InfoValue'])
-                    elements.append(not_found)
+                # Criar tabela com larguras iguais
+                available_width = 6.5*inch  # Largura disponível na página
+                col_width = available_width / 2  # 2 colunas
                 
-                elements.append(Spacer(1, 15))
+                photo_table = Table(table_data, colWidths=[col_width, col_width])
+                photo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    # Bordas suaves entre fotos
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+                    # Background alternado para labels
+                    ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#f9fafb')),  # Labels primeira linha
+                ] + ([('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f9fafb'))] if len(table_data) > 2 else [])))
                 
-            except Exception as e:
-                print(f"⚠️ Erro ao processar foto {i+1}: {e}")
-                error_para = Paragraph(f"[Erro ao processar foto {i+1}]", self.styles['InfoValue'])
-                elements.append(error_para)
-                elements.append(Spacer(1, 10))
+                elements.append(photo_table)
+                elements.append(Spacer(1, 20))
+                
+                # Adicionar quebra de página se não for a última página de fotos
+                if page_index + photos_per_page < len(photos):
+                    elements.append(PageBreak())
         
         return elements
     

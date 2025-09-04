@@ -590,6 +590,20 @@ body {
   z-index: 10; /* Garantir que está no topo para cliques */
 }
 
+/* Quando há imagem, diminuir z-index do input para não cobrir botão de remoção */
+.photo-preview.has-image input[type="file"],
+.photo-preview.has-photo input[type="file"] {
+  z-index: 1; /* Menor que o botão de remoção */
+  pointer-events: none; /* Desabilitar cliques quando há foto */
+}
+
+/* Quando há documentos carregados, desabilitar input de arquivo por baixo */
+.photo-preview:has(.documents-container) input[type="file"],
+.photo-preview .documents-container ~ input[type="file"] {
+  z-index: 1;
+  pointer-events: none;
+}
+
 /* Garantir compatibilidade desktop para inputs de arquivo */
 @media (hover: hover) and (pointer: fine) {
   .photo-upload input[type="file"] {
@@ -598,6 +612,20 @@ body {
   
   .photo-upload:hover input[type="file"] {
     opacity: 0.01; /* Quase invisível mas ainda clicável */
+  }
+  
+  /* Também aplicar a regra no desktop */
+  .photo-preview.has-image input[type="file"],
+  .photo-preview.has-photo input[type="file"] {
+    z-index: 1;
+    pointer-events: none;
+  }
+  
+  /* Desktop - quando há documentos carregados, desabilitar input */
+  .photo-preview:has(.documents-container) input[type="file"],
+  .photo-preview .documents-container ~ input[type="file"] {
+    z-index: 1;
+    pointer-events: none;
   }
 }
 
@@ -715,11 +743,14 @@ label.btn-upload-desktop {
   font-weight: bold;
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
+  z-index: 999; /* Alto z-index para ficar acima de tudo */
+  pointer-events: auto; /* Garantir que o botão seja clicável */
 }
 
 .photo-remove:hover {
   background: #dc2626;
   transform: scale(1.1);
+  z-index: 1000; /* Ainda maior no hover */
 }
 
 .upload-placeholder {
@@ -2083,6 +2114,33 @@ label.btn-upload-desktop {
     position: relative;
     z-index: 2;
     padding: 0 var(--spacing-sm);
+    cursor: pointer; /* Indicar que é clicável */
+    transition: all 0.2s ease; /* Transição suave para hover */
+}
+
+/* Estados de hover para melhor UX */
+.progress-step:hover .step-number {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.progress-step:hover .step-label {
+    color: var(--primary);
+}
+
+/* Estado ativo mantém precedência sobre hover */
+.progress-step.active:hover .step-number {
+    transform: scale(1.05); /* Menor escala para estado ativo */
+}
+
+.progress-step.completed:hover .step-number {
+    transform: scale(1.05);
+}
+
+/* Efeito de press para mobile */
+.progress-step:active .step-number {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
 }
 
 .step-number {
@@ -2097,8 +2155,9 @@ label.btn-upload-desktop {
     font-weight: bold;
     font-size: var(--font-sm);
     margin-bottom: var(--spacing-xs);
-    transition: var(--transition);
+    transition: all 0.3s ease; /* Transição mais suave */
     border: 2px solid var(--border);
+    user-select: none; /* Prevenir seleção de texto */
 }
 
 .step-label {
@@ -2106,7 +2165,8 @@ label.btn-upload-desktop {
     color: var(--text-muted);
     text-align: center;
     font-weight: 500;
-    transition: var(--transition);
+    transition: all 0.2s ease; /* Transição suave */
+    user-select: none; /* Prevenir seleção de texto */
 }
 
 .progress-step.active .step-number {
@@ -2232,17 +2292,31 @@ label.btn-upload-desktop {
     .progress-step {
         flex-shrink: 0;
         min-width: 60px;
+        /* Melhor área de toque para mobile */
+        padding: var(--spacing-sm);
     }
     
-    .step-number {
-        width: 32px;
-        height: 32px;
+    /* Área de toque maior em mobile */
+    .progress-step .step-number {
+        width: 36px;
+        height: 36px;
         font-size: var(--font-xs);
     }
     
-    .step-label {
+    .progress-step .step-label {
         font-size: 10px;
         white-space: nowrap;
+    }
+    
+    /* Efeitos hover mais sutis em mobile */
+    .progress-step:hover .step-number {
+        transform: scale(1.05); /* Menos pronunciado em mobile */
+    }
+    
+    /* Estado active touch para mobile */
+    .progress-step:active .step-number {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
     }
     
     .progress-bar::before {
@@ -2884,10 +2958,13 @@ label.btn-upload-desktop {
     font-size: 14px;
     font-weight: bold;
     transition: background-color 0.2s;
+    z-index: 999; /* Alto z-index para ficar acima */
+    pointer-events: auto; /* Garantir clique */
 }
 
 .document-remove:hover {
     background: rgba(220, 53, 69, 1);
+    z-index: 1000; /* Ainda maior no hover */
 }
 
 /* Responsividade para documento */
@@ -3035,5 +3112,207 @@ label.btn-upload-desktop {
     /* Esconder o botão no mobile */
     #btn_upload_documento {
         display: none !important;
+    }
+}
+
+/* Estilos para múltiplos documentos */
+.documents-container {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 12px;
+    position: relative; /* Para que o z-index funcione */
+    z-index: 500; /* Acima do input de arquivo */
+    pointer-events: auto; /* Garantir que seja clicável */
+}
+
+.documents-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.documents-total-size {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.documents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.document-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.document-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.document-icon {
+    font-size: 1.8em;
+    margin-right: 12px;
+    opacity: 0.9;
+}
+
+.document-thumbnail {
+    margin-right: 12px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.document-details {
+    flex: 1;
+    min-width: 0; /* Para permitir ellipsis */
+}
+
+.document-name {
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #ffffff;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.document-size {
+    font-size: 0.75em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.document-remove {
+    background: rgba(220, 53, 69, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+    z-index: 999; /* Alto z-index para ficar acima */
+    pointer-events: auto; /* Garantir clique */
+    position: relative; /* Para que o z-index funcione */
+}
+
+.document-remove:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+    z-index: 1000; /* Ainda maior no hover */
+}
+
+.documents-clear {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(220, 53, 69, 0.6); /* Mais opaco */
+    color: white;
+    border: 1px solid rgba(220, 53, 69, 0.8); /* Borda mais forte */
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 999; /* Alto z-index para ficar acima */
+    position: relative; /* Para que o z-index funcione */
+    pointer-events: auto; /* Garantir que seja clicável */
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3); /* Adicionar sombra */
+}
+
+.documents-clear:hover {
+    background: rgba(220, 53, 69, 0.8); /* Ainda mais vibrante no hover */
+    border-color: rgba(220, 53, 69, 1); /* Borda sólida no hover */
+    transform: translateY(-1px);
+    z-index: 1000; /* Ainda maior no hover */
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4); /* Sombra maior no hover */
+}
+
+/* Responsividade para múltiplos documentos */
+@media (max-width: 768px) {
+    .documents-container {
+        max-height: 250px;
+        padding: 10px;
+    }
+    
+    .documents-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .document-item {
+        padding: 6px 10px;
+    }
+    
+    .document-icon {
+        font-size: 1.5em;
+        margin-right: 10px;
+    }
+    
+    .document-name {
+        font-size: 0.85em;
+    }
+    
+    .document-size {
+        font-size: 0.7em;
+    }
+    
+    .document-remove {
+        width: 18px;
+        height: 18px;
+        font-size: 11px;
+    }
+}
+
+@media (min-width: 769px) {
+    .documents-container {
+        max-height: 350px;
+        padding: 16px;
+    }
+    
+    .document-item {
+        padding: 10px 14px;
+    }
+    
+    .document-icon {
+        font-size: 2em;
+        margin-right: 14px;
+    }
+    
+    .document-name {
+        font-size: 0.95em;
+    }
+    
+    .document-size {
+        font-size: 0.8em;
+    }
+    
+    .document-remove {
+        width: 22px;
+        height: 22px;
+        font-size: 13px;
     }
 }
