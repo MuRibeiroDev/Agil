@@ -25,20 +25,26 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
     print(f"🔍 [PHOTO_UTILS] Vistoria ID: {vistoria_id}, Token: {vistoria_token}")
     print(f"🔍 [PHOTO_UTILS] Iniciando process_vistoria_photos com {len(photos_data)} fotos")
     
-    # CORREÇÃO: Remover duplicatas baseadas na categoria
+    # CORREÇÃO: Remover duplicatas baseadas na categoria - EXCETO DOCUMENTOS
     seen_categories = set()
     unique_photos = []
     
     for i, photo in enumerate(photos_data):
         category = photo.get('category') or photo.get('name', 'unknown')
-        print(f"🔍 [DEDUP] Verificando foto {i+1}: categoria='{category}', type='{photo.get('type')}'")
+        photo_type = photo.get('type', 'unknown')
+        print(f"🔍 [DEDUP] Verificando foto {i+1}: categoria='{category}', type='{photo_type}'")
         
-        if category not in seen_categories:
+        # CORREÇÃO CRÍTICA: Não remover documentos como duplicatas
+        # Documentos podem ter nomes similares mas serem arquivos diferentes
+        if category == 'documento_nota_fiscal':
+            unique_photos.append(photo)
+            print(f"📄 [DEDUP] Documento SEMPRE aceito: {category} (type={photo_type})")
+        elif category not in seen_categories:
             seen_categories.add(category)
             unique_photos.append(photo)
             print(f"✅ [DEDUP] Foto aceita: {category}")
         else:
-            print(f"❌ [DEDUP] Foto duplicada ignorada: {category} (type={photo.get('type')})")
+            print(f"❌ [DEDUP] Foto duplicada ignorada: {category} (type={photo_type})")
     
     print(f"🔍 [DEDUP] Resultado: {len(photos_data)} -> {len(unique_photos)} fotos (removidas {len(photos_data) - len(unique_photos)} duplicatas)")
     
@@ -53,12 +59,12 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
             print(f"🔍 DEBUG: Foto {i+1}: categoria='{photo.get('category')}', name='{photo.get('name')}', type='{photo.get('type')}'")
             category = photo.get('category') or photo.get('name', 'unknown')
             
-            # Determinar tipo da foto
+            # Determinar tipo da foto - LÓGICA MELHORADA
             if any(x in category.lower() for x in ['pneu_', 'marca_pneu']):
                 tipo = 'pneu'
             elif any(x in category.lower() for x in ['obs_', 'observacao']):
                 tipo = 'observacao'
-            elif category == 'documento_nota_fiscal':
+            elif category == 'documento_nota_fiscal' or 'documento' in category.lower():
                 tipo = 'documento'
                 print(f"📄 DEBUG: Documento detectado! Categoria: {category}")
             else:
@@ -198,17 +204,36 @@ def process_vistoria_photos(photos_data: list, vistoria_id: str, vistoria_token:
             
             # Inserir foto no banco
             print(f"🔍 [PHOTO_UTILS] ========== INSERINDO NO BANCO ==========")
+            print(f"🔍 [PHOTO_UTILS] Vistoria ID: {vistoria_id}")
             print(f"🔍 [PHOTO_UTILS] Categoria: {category}")
+            print(f"🔍 [PHOTO_UTILS] Tipo determinado: {tipo}")
             print(f"🔍 [PHOTO_UTILS] Arquivo info: {arquivo_info}")
             
-            foto_id = vistoria_db.inserir_foto_vistoria(
-                vistoria_id=vistoria_id,
-                categoria=category,
-                arquivo_info=arquivo_info
-            )
-            
-            foto_ids.append(foto_id)
-            print(f"✅ [PHOTO_UTILS] Foto inserida no banco: {category} - ID: {foto_id}")
+            try:
+                foto_id = vistoria_db.inserir_foto_vistoria(
+                    vistoria_id=vistoria_id,
+                    categoria=category,
+                    arquivo_info=arquivo_info
+                )
+                
+                foto_ids.append(foto_id)
+                
+                if tipo == 'documento':
+                    print(f"📄 [SUCESSO] DOCUMENTO INSERIDO NO BANCO! ID: {foto_id}")
+                    print(f"📄 [SUCESSO] Categoria: {category}")
+                    print(f"📄 [SUCESSO] Arquivo: {arquivo_info.get('filename')}")
+                    print(f"📄 [SUCESSO] Tamanho: {arquivo_info.get('size')} bytes")
+                else:
+                    print(f"✅ [PHOTO_UTILS] Foto inserida no banco: {category} - ID: {foto_id}")
+                
+            except Exception as insert_error:
+                print(f"❌ [ERRO CRÍTICO] Falha ao inserir no banco:")
+                print(f"   - Categoria: {category}")
+                print(f"   - Tipo: {tipo}")
+                print(f"   - Erro: {insert_error}")
+                print(f"   - Arquivo info: {arquivo_info}")
+                # Não adicionar à lista em caso de erro
+                foto_ids.append(None)
         
         print(f"🔍 [PHOTO_UTILS] ========== FIM PROCESSAMENTO ==========")
         print(f"🔍 [PHOTO_UTILS] Total de fotos processadas: {len(foto_ids)}")

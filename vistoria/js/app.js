@@ -1489,15 +1489,28 @@ async function collectFormData() {
     console.log('🔍 DEBUG - Próprio:', data.veiculo.proprio);
     console.log('🔍 DEBUG - Nome terceiro:', data.veiculo.nome_terceiro);
     
-    // Adicionar documento se existir (múltiplas fontes de verificação)
+    // Adicionar documento se existir (múltiplas fontes de verificação) - CORREÇÃO CRÍTICA
     console.log('🔍 DOCUMENTO DEBUG - Verificando fontes:');
     console.log('   - AppState.documentData:', AppState.documentData);
     console.log('   - AppState.photos[documento_nota_fiscal]:', AppState.photos['documento_nota_fiscal']);
     console.log('   - AppState.documentFile:', AppState.documentFile);
+    console.log('   - AppState.documents (NOVO):', AppState.documents); // NOVA VERIFICAÇÃO
     console.log('   - savedDocumentData:', savedDocumentData);
     console.log('   - savedDocumentInPhotos:', savedDocumentInPhotos);
     
-    const documentData = savedDocumentData || 
+    // CORREÇÃO: Verificar também AppState.documents (novo formato)
+    let documentFromNewFormat = null;
+    if (AppState.documents && Array.isArray(AppState.documents) && AppState.documents.length > 0) {
+        // Pegar o primeiro documento (ou procurar por documento_nota_fiscal)
+        documentFromNewFormat = AppState.documents.find(doc => 
+            doc.category === 'documento_nota_fiscal' || 
+            doc.name === 'documento_nota_fiscal'
+        ) || AppState.documents[0]; // Fallback para o primeiro documento
+        console.log('📄 DOCUMENTO ENCONTRADO no novo formato:', documentFromNewFormat);
+    }
+    
+    const documentData = documentFromNewFormat ||  // PRIORIDADE PARA NOVO FORMATO
+                         savedDocumentData || 
                          savedDocumentInPhotos ||
                          AppState.documentData || 
                          AppState.photos['documento_nota_fiscal'] || 
@@ -1512,15 +1525,17 @@ async function collectFormData() {
     console.log('📄 DOCUMENTO FINAL ENCONTRADO:', documentData);
     
     if (documentData) {
+        console.log('📄 DOCUMENTO ENCONTRADO - Processando...', documentData);
+        
         // Se o documento já tem URL (base64), usar ela
         if (documentData.url) {
             data.documento = {
                 file: documentData.url, // Base64
-                name: documentData.name || documentData.file?.name || 'documento_nota_fiscal',
-                size: documentData.size || documentData.file?.size || 0,
-                type: documentData.type || documentData.file?.type || 'application/pdf'
+                name: documentData.fileName || documentData.name || 'documento_nota_fiscal', // CORREÇÃO: suporte a fileName
+                size: documentData.fileSize || documentData.size || 0, // CORREÇÃO: suporte a fileSize
+                type: documentData.fileType || documentData.type || 'application/pdf' // CORREÇÃO: suporte a fileType
             };
-            console.log('📄 Documento usando URL existente:', data.documento.name);
+            console.log('📄 Documento usando URL existente:', data.documento.name, 'Tipo:', data.documento.type);
         } else if (documentData.file) {
             // Se não tem URL, converter para base64
             const reader = new FileReader();
@@ -1543,7 +1558,7 @@ async function collectFormData() {
                 data.documento = null;
             }
         } else {
-            console.log('⚠️ Documento encontrado mas sem file nem URL');
+            console.log('⚠️ Documento encontrado mas sem file nem URL:', documentData);
             data.documento = null;
         }
     } else {
@@ -2953,6 +2968,12 @@ function clearFieldErrors(fields) {
 
 // Preencher dados da revisão
 function populateReviewData() {
+    console.log('📋 REVISÃO: Populando dados da revisão...');
+    console.log('📋 DEBUG: Estado atual do AppState:');
+    console.log('   - AppState.documents:', AppState.documents);
+    console.log('   - AppState.documentFile:', AppState.documentFile);
+    console.log('   - AppState.photos:', Object.keys(AppState.photos || {}));
+    
     // Dados do veículo
     document.getElementById('review-placa').textContent = document.getElementById('placa').value || '-';
     document.getElementById('review-modelo').textContent = document.getElementById('modelo').value || '-';
@@ -2967,8 +2988,59 @@ function populateReviewData() {
     
     const docElement = document.getElementById('review-documento');
     if (docElement) {
-        const docFile = AppState.documentFile;
-        docElement.textContent = docFile ? `📄 ${docFile.name}` : 'Nenhum documento anexado';
+        console.log('📄 REVISÃO: Procurando documento para exibição...');
+        
+        // CORREÇÃO: Verificar múltiplas fontes de documento
+        let documentInfo = null;
+        
+        // 1. Verificar AppState.documents (novo formato)
+        console.log('📄 REVISÃO: Verificando AppState.documents:', AppState.documents);
+        if (AppState.documents && Array.isArray(AppState.documents) && AppState.documents.length > 0) {
+            const doc = AppState.documents.find(d => d.category === 'documento_nota_fiscal') || AppState.documents[0];
+            console.log('📄 REVISÃO: Documento encontrado em AppState.documents:', doc);
+            if (doc) {
+                documentInfo = {
+                    name: doc.fileName || doc.name || 'documento_nota_fiscal',
+                    size: doc.fileSize || doc.size || 0,
+                    type: doc.fileType || doc.type || 'unknown'
+                };
+                console.log('📄 REVISÃO: DocumentInfo criado:', documentInfo);
+            }
+        }
+        
+        // 2. Fallback para AppState.documentFile (formato antigo)
+        if (!documentInfo && AppState.documentFile) {
+            documentInfo = {
+                name: AppState.documentFile.name,
+                size: AppState.documentFile.size,
+                type: AppState.documentFile.type
+            };
+        }
+        
+        // 3. Fallback para AppState.photos['documento_nota_fiscal']
+        if (!documentInfo && AppState.photos && AppState.photos['documento_nota_fiscal']) {
+            const photoDoc = AppState.photos['documento_nota_fiscal'];
+            documentInfo = {
+                name: photoDoc.file?.name || 'documento_nota_fiscal',
+                size: photoDoc.file?.size || 0,
+                type: photoDoc.file?.type || 'unknown'
+            };
+        }
+        
+        if (documentInfo) {
+            const sizeStr = documentInfo.size > 0 ? ` (${(documentInfo.size / 1024 / 1024).toFixed(2)} MB)` : '';
+            const typeIcon = documentInfo.type.includes('pdf') ? '📕' : 
+                           documentInfo.type.includes('image') ? '🖼️' : 
+                           documentInfo.type.includes('word') ? '📝' : '📄';
+            docElement.textContent = `${typeIcon} ${documentInfo.name}${sizeStr}`;
+            console.log('📄 REVISÃO: Documento encontrado para exibição:', documentInfo);
+        } else {
+            docElement.textContent = 'Nenhum documento anexado';
+            console.log('⚠️ REVISÃO: Nenhum documento encontrado para exibição');
+            console.log('   - AppState.documents:', AppState.documents);
+            console.log('   - AppState.documentFile:', AppState.documentFile);
+            console.log('   - AppState.photos[documento_nota_fiscal]:', AppState.photos?.['documento_nota_fiscal']);
+        }
     }
     
     // Questionário
