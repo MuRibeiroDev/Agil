@@ -3316,3 +3316,119 @@ label.btn-upload-desktop {
         font-size: 13px;
     }
 }
+
+/* Toggle Switch para Fotos no PDF */
+.review-photos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.photos-toggle-container {
+    display: flex;
+    align-items: center;
+}
+
+.photos-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.photos-toggle input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    background-color: var(--border);
+    border-radius: 24px;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.photos-toggle input[type="checkbox"]:checked + .toggle-slider {
+    background-color: var(--success);
+}
+
+.photos-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.photos-toggle:hover .toggle-slider {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Responsivo para o toggle */
+@media (max-width: 768px) {
+    .review-photos-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .photos-toggle-container {
+        align-self: flex-end;
+    }
+    
+    .toggle-slider {
+        width: 44px;
+        height: 22px;
+    }
+    
+    .toggle-slider::before {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .photos-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+        transform: translateX(22px);
+    }
+    
+    .toggle-label {
+        font-size: var(--font-xs);
+    }
+}
+
+/* Estilos para o toggle de PDF no modal */
+.pdf-options-container {
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-md);
+    background: var(--bg-section);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.toggle-help {
+    display: block;
+    margin-top: var(--spacing-xs);
+    color: var(--text-muted);
+    font-size: var(--font-sm);
+    line-height: 1.4;
+}

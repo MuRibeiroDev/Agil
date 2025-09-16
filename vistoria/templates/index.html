@@ -120,6 +120,10 @@
                             <input type="text" id="placa" name="placa" class="input uppercase-input" placeholder="ABC1234" maxlength="7">
                         </div>
                         <div class="form-group">
+                            <label for="chassi" class="label">Chassi</label>
+                            <input type="text" id="chassi" name="chassi" class="input uppercase-input" placeholder="9BWZZZ377VT004251" maxlength="17">
+                        </div>
+                        <div class="form-group">
                             <label for="modelo" class="label">Modelo</label>
                             <input type="text" id="modelo" name="modelo" class="input uppercase-input" placeholder="Honda Civic">
                         </div>
@@ -561,6 +565,10 @@
                                     <span class="review-value" id="review-placa">-</span>
                                 </div>
                                 <div class="review-item">
+                                    <span class="review-label">Chassi:</span>
+                                    <span class="review-value" id="review-chassi">-</span>
+                                </div>
+                                <div class="review-item">
                                     <span class="review-label">Modelo:</span>
                                     <span class="review-value" id="review-modelo">-</span>
                                 </div>
@@ -591,7 +599,9 @@
                         </div>
 
                         <div class="review-section">
-                            <h3 class="review-title">📸 Fotos da Vistoria</h3>
+                            <div class="review-photos-header">
+                                <h3 class="review-title">📸 Fotos da Vistoria</h3>
+                            </div>
                             <div class="review-photos" id="review-photos">
                                 <p class="review-no-photos">Nenhuma foto adicionada</p>
                             </div>
@@ -674,7 +684,7 @@
         <div class="modal-overlay"></div>
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Confirmação</h3>
+                <h3 class="modal-title">Finalizar Vistoria</h3>
             </div>
             <div class="modal-body">
                 <p id="modal-message"></p>
@@ -684,7 +694,7 @@
                     <span>Cancelar</span>
                 </button>
                 <button id="modal-confirm-btn" class="button button-primary">
-                    <span>Confirmar</span>
+                    <span>Finalizar Vistoria</span>
                 </button>
             </div>
         </div>

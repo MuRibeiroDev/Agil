@@ -6,8 +6,61 @@ from flask import Blueprint, request, jsonify, send_file
 from datetime import datetime
 from db import get_vistoria_db
 from utils.pdf_utils import generate_vistoria_pdf
+from utils.professional_pdf import generate_professional_pdf
 
 pdf_bp = Blueprint('pdf', __name__)
+
+
+@pdf_bp.route('/api/gerar_pdf_old/<token>', methods=['GET'])
+def gerar_pdf_vistoria_old(token):
+    """Gerar PDF usando o método antigo (ReportLab) - para fallback"""
+    try:
+        print(f"📄 Gerando PDF ANTIGO para token: {token}")
+        
+        # Buscar dados da vistoria no banco
+        db = get_vistoria_db()
+        vistoria = db.buscar_vistoria_por_token(token)
+        
+        if not vistoria:
+            return jsonify({
+                'success': False,
+                'message': 'Vistoria não encontrada'
+            }), 404
+        
+        # Preparar dados básicos para o PDF antigo
+        pdf_data = {**vistoria}  # Usar todos os dados da vistoria
+        
+        # Diretório para salvar PDF
+        pdf_dir = os.path.join(os.path.dirname(__file__), '..', 'pdfs')
+        os.makedirs(pdf_dir, exist_ok=True)
+        
+        # Nome do arquivo PDF
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        pdf_filename = f'vistoria_old_{token}_{timestamp}.pdf'
+        pdf_path = os.path.join(pdf_dir, pdf_filename)
+        
+        # Gerar PDF usando método antigo
+        success = generate_vistoria_pdf(pdf_data, pdf_path)
+        
+        if success and os.path.exists(pdf_path):
+            return send_file(
+                pdf_path,
+                as_attachment=True,
+                download_name=f'Vistoria_Old_{vistoria.get("placa", token)}.pdf',
+                mimetype='application/pdf'
+            )
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Erro ao gerar PDF'
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Erro ao gerar PDF antigo: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro interno: {str(e)}'
+        }), 500
 
 
 @pdf_bp.route('/api/gerar_pdf/<token>', methods=['GET'])
@@ -15,6 +68,10 @@ def gerar_pdf_vistoria(token):
     """Gerar e retornar PDF da vistoria"""
     try:
         print(f"📄 Gerando PDF para token: {token}")
+        
+        # Verificar parâmetro include_photos da URL
+        include_photos = request.args.get('include_photos', 'true').lower() == 'true'
+        print(f"📸 Incluir fotos no PDF: {include_photos}")
         
         # Buscar dados da vistoria no banco
         db = get_vistoria_db()
@@ -46,20 +103,25 @@ def gerar_pdf_vistoria(token):
         for i, foto in enumerate(fotos):
             print(f"   Foto {i+1}: {foto.get('categoria')} - {foto.get('arquivo_nome')}")
         
-        # Preparar dados para o PDF
+        # Preparar dados para o PDF profissional
         pdf_data = {
+            'id': vistoria.get('id'),
             'token': vistoria.get('token'),
             'nome_cliente': vistoria.get('nome_cliente'),
-            'nome_terceiro': vistoria.get('nome_terceiro'),  # Adicionar nome_terceiro
+            'nome_terceiro': vistoria.get('nome_terceiro'),
+            'proprio': vistoria.get('proprio'),
             'nome_conferente': vistoria.get('nome_conferente'),
             'data_vistoria': vistoria.get('criado_em'),
             'status': vistoria.get('status'),
+            'km_rodado': vistoria.get('km_rodado'),
             'veiculo': {
                 'placa': vistoria.get('placa'),
+                'marca': vistoria.get('marca'),
                 'modelo': vistoria.get('modelo'),
                 'cor': vistoria.get('cor'),
                 'ano': str(vistoria.get('ano')) if vistoria.get('ano') else None,
-                'km_rodado': vistoria.get('km_rodado')
+                'chassi': vistoria.get('chassi'),
+                'renavam': vistoria.get('renavam')
             },
             'pneus': {
                 'marca_pneu_dianteiro_esquerdo': vistoria.get('marca_pneu_dianteiro_esquerdo'),
@@ -67,18 +129,21 @@ def gerar_pdf_vistoria(token):
                 'marca_pneu_traseiro_esquerdo': vistoria.get('marca_pneu_traseiro_esquerdo'),
                 'marca_pneu_traseiro_direito': vistoria.get('marca_pneu_traseiro_direito')
             },
-            'photos': [{'category': foto.get('categoria'), 'name': foto.get('arquivo_nome'), 'path': foto.get('arquivo_path')} for foto in fotos],
+            'fotos': [{'categoria': foto.get('categoria'), 'nome': foto.get('arquivo_nome'), 'path': foto.get('arquivo_path')} for foto in fotos],
             'assinado_em': vistoria.get('assinatura_data'),
-            'assinatura_path': vistoria.get('assinatura_arquivo_path'),
-            'assinatura_checksum': vistoria.get('assinatura_checksum'),
-            'cliente_nome_assinatura': vistoria.get('assinatura_cliente_nome')
+            'token_assinatura': vistoria.get('token'),
+            'assinatura_cliente_nome': vistoria.get('assinatura_cliente_nome') or vistoria.get('nome_cliente'),
+            # Opções do PDF (incluir fotos ou não)
+            'pdf_options': {
+                'include_photos': include_photos
+            }
         }
         
         # Debug: Mostrar o que será passado para o PDF
         print(f"📄 DEBUG - Dados que serão passados para o PDF:")
         print(f"   nome_cliente no pdf_data: '{pdf_data.get('nome_cliente')}'")
         print(f"   nome_terceiro no pdf_data: '{pdf_data.get('nome_terceiro')}'")
-        print(f"   cliente_nome_assinatura no pdf_data: '{pdf_data.get('cliente_nome_assinatura')}'")
+        print(f"   assinatura_cliente_nome no pdf_data: '{pdf_data.get('assinatura_cliente_nome')}'")
         
         # Adicionar campos do questionário
         questionnaire_fields = [
@@ -96,6 +161,7 @@ def gerar_pdf_vistoria(token):
         for i in range(1, 5):
             obs_field = f'desc_obs_{i}'
             pdf_data[obs_field] = vistoria.get(obs_field, '')
+            pdf_data[obs_field] = vistoria.get(obs_field, '')
         
         # Criar diretório para PDFs se não existir
         pdf_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pdfs')
@@ -106,9 +172,9 @@ def gerar_pdf_vistoria(token):
         pdf_filename = f'vistoria_{token}_{timestamp}.pdf'
         pdf_path = os.path.join(pdf_dir, pdf_filename)
         
-        # Gerar PDF
-        print(f"📄 Gerando PDF: {pdf_path}")
-        success = generate_vistoria_pdf(pdf_data, pdf_path)
+        # Gerar PDF usando biblioteca profissional (novo método)
+        print(f"📄 Gerando PDF profissional: {pdf_path}")
+        success = generate_professional_pdf(pdf_data, pdf_path)
         
         if success and os.path.exists(pdf_path):
             print(f"✅ PDF gerado com sucesso: {pdf_filename}")

@@ -46,7 +46,8 @@ class DatabaseConfig:
             'database': cls.DB_NAME,
             'user': cls.DB_USER,
             'password': cls.DB_PASSWORD,
-            'cursor_factory': RealDictCursor
+            'cursor_factory': RealDictCursor,
+            'sslmode': 'disable'  # Desabilita SSL para conexão local
         }
 
 class DatabaseManager:
@@ -137,7 +138,7 @@ class VistoriaDatabase:
             # SQL de inserção - REMOVIDO documento_nota_fiscal
             sql = """
             INSERT INTO vistorias (
-                token, placa, modelo, cor, ano, nome_conferente, nome_cliente, km_rodado,
+                token, placa, chassi, modelo, cor, ano, nome_conferente, nome_cliente, km_rodado,
                 proprio, nome_terceiro,
                 ar_condicionado, antenas, tapetes, tapete_porta_malas, bateria,
                 retrovisor_direito, retrovisor_esquerdo, extintor, roda_comum, roda_especial,
@@ -147,11 +148,11 @@ class VistoriaDatabase:
                 marca_pneu_traseiro_esquerdo, marca_pneu_traseiro_direito,
                 token_expira_em, status
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s,
                 CURRENT_TIMESTAMP + INTERVAL '24 hours', 'aguardando_assinatura'
             ) RETURNING id, token
             """
@@ -229,6 +230,7 @@ class VistoriaDatabase:
             valores = (
                 token,
                 veiculo.get('placa', '') or None,  # Permite null se vazio
+                veiculo.get('chassi', '') or None,  # Permite null se vazio
                 veiculo.get('modelo', ''),  # Obrigatório
                 veiculo.get('cor', ''),  # Obrigatório
                 ano_valido,  # Pode ser None

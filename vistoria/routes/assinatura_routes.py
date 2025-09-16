@@ -22,6 +22,7 @@ def prepare_vistoria_data_for_saving(vistoria_data):
     return {
         'veiculo': {
             'placa': vistoria_data.get('veiculo', {}).get('placa', ''),
+            'chassi': vistoria_data.get('veiculo', {}).get('chassi', ''),  # ADICIONADO CHASSI
             'modelo': vistoria_data.get('veiculo', {}).get('modelo', ''),
             'cor': vistoria_data.get('veiculo', {}).get('cor', ''),
             'ano': vistoria_data.get('veiculo', {}).get('ano', ''),
@@ -272,10 +273,14 @@ def dados_vistoria_cliente():
         # Converter dados do banco para formato do frontend
         vistoria_data = {
             'placa': vistoria['placa'],
+            'chassi': vistoria['chassi'],  # ADICIONADO CHASSI
             'modelo': vistoria['modelo'],
             'cor': vistoria['cor'],
             'ano': vistoria['ano'],
             'km_rodado': vistoria['km_rodado'],  # ADICIONADO CAMPO KM_RODADO
+            'proprio': vistoria['proprio'],  # ADICIONADO CAMPO PROPRIO
+            'nome_terceiro': vistoria['nome_terceiro'],  # ADICIONADO NOME_TERCEIRO
+            'nome_cliente': vistoria['nome_cliente'],  # ADICIONADO NOME_CLIENTE
             'nome_conferente': vistoria['nome_conferente'],
             'criado_em': vistoria['criado_em'].isoformat() if vistoria['criado_em'] else None,
             
@@ -301,6 +306,7 @@ def dados_vistoria_cliente():
             'macaco': vistoria['macaco'],
             'chave_roda': vistoria['chave_roda'],
             'pneu_step': vistoria['pneu_step'],
+            'carregador_eletrico': vistoria['carregador_eletrico'],  # ADICIONADO CARREGADOR ELÉTRICO
             
             # Marcas dos pneus
             'marca_pneu_de': vistoria['marca_pneu_dianteiro_esquerdo'],

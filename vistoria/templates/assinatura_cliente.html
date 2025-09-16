@@ -1130,24 +1130,28 @@
             
             const vehicleData = [
                 { label: '🚗 Placa', value: vistoria.placa || 'N/A' },
+                { label: '🔧 Chassi', value: vistoria.chassi || 'N/A' },
                 { label: '🏭 Modelo', value: vistoria.modelo || 'N/A' },
                 { label: '🎨 Cor', value: vistoria.cor || 'N/A' },
                 { label: '📅 Ano', value: vistoria.ano || 'N/A' },
                 { label: '🛣️ KM Rodado', value: vistoria.km_rodado ? `${vistoria.km_rodado} km` : 'N/A' }
             ];
             
-            // Adicionar informação sobre propriedade do veículo
-            if (vistoria.proprio === false && vistoria.nome_terceiro) {
+            // Lógica do proprietário: prioridade nome_cliente, depois nome_terceiro
+            if (vistoria.nome_cliente && vistoria.nome_cliente.trim() !== '') {
+                // Se tem nome_cliente, usar ele
+                vehicleData.splice(1, 0, { 
+                    label: '👤 Proprietário', 
+                    value: vistoria.nome_cliente 
+                });
+            } else if (vistoria.nome_terceiro && vistoria.nome_terceiro.trim() !== '') {
+                // Se não tem nome_cliente mas tem nome_terceiro, usar nome_terceiro
                 vehicleData.splice(1, 0, { 
                     label: '👤 Proprietário', 
                     value: vistoria.nome_terceiro 
                 });
-            } else if (vistoria.proprio !== false) {
-                vehicleData.splice(1, 0, { 
-                    label: '👤 Proprietário', 
-                    value: 'Veículo Próprio' 
-                });
             }
+            // Se não tem nenhum dos dois, não mostra o campo proprietário
             
             if (vehicleContainer) {
                 vehicleContainer.innerHTML = vehicleData.map(item => `
@@ -1189,7 +1193,8 @@
                 { name: 'triangulo', text: 'Triângulo?' },
                 { name: 'macaco', text: 'Macaco?' },
                 { name: 'chave_roda', text: 'Chave de roda?' },
-                { name: 'pneu_step', text: 'Pneu step?' }
+                { name: 'pneu_step', text: 'Pneu step?' },
+                { name: 'carregador_eletrico', text: 'Carregador elétrico?' }
             ];
             
             if (questionsContainer) {

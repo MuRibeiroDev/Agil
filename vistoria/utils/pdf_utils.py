@@ -76,42 +76,33 @@ class VistoriaPDFGenerator:
         ))
     
     def generate_pdf(self, vistoria_data, output_path):
-        """Gerar PDF da vistoria"""
+        """Gerar PDF da vistoria com layout otimizado"""
         try:
             doc = SimpleDocTemplate(
                 output_path,
                 pagesize=A4,
-                rightMargin=72,
-                leftMargin=72,
-                topMargin=72,
-                bottomMargin=18
+                rightMargin=50,
+                leftMargin=50,
+                topMargin=50,
+                bottomMargin=50
             )
             
             # Lista de elementos do PDF
             elements = []
             
-            # Cabeçalho
+            # PRIMEIRA PÁGINA: Cabeçalho + Informações do veículo + Questionário
             elements.extend(self._create_header(vistoria_data))
-            
-            # Informações do veículo
             elements.extend(self._create_vehicle_info(vistoria_data))
-            
-            # Questionário
             elements.extend(self._create_questionnaire(vistoria_data))
             
-            # Informações dos pneus
+            # Quebra de página após o questionário
+            elements.append(PageBreak())
+            
+            # SEGUNDA PÁGINA EM DIANTE: Demais seções
             elements.extend(self._create_tire_info(vistoria_data))
-            
-            # Observações
             elements.extend(self._create_observations(vistoria_data))
-            
-            # Fotos
             elements.extend(self._create_photos_section(vistoria_data))
-            
-            # Assinatura
             elements.extend(self._create_signature_section(vistoria_data))
-            
-            # Rodapé
             elements.extend(self._create_footer(vistoria_data))
             
             # Gerar PDF
@@ -124,96 +115,119 @@ class VistoriaPDFGenerator:
             return False
     
     def _create_header(self, data):
-        """Criar cabeçalho do PDF"""
+        """Criar cabeçalho do PDF com design profissional"""
         elements = []
         
-        # Título
-        title = Paragraph("Relatório de Vistoria de Veículo", self.styles['CustomTitle'])
-        elements.append(title)
-        elements.append(Spacer(1, 20))
-        
-        # Informações básicas em tabela
-        token = data.get('token', 'N/A')
-        data_vistoria = data.get('data_vistoria', datetime.now().strftime('%d/%m/%Y %H:%M'))
-        if isinstance(data_vistoria, str) and 'T' in data_vistoria:
-            try:
-                dt = datetime.fromisoformat(data_vistoria.replace('Z', ''))
-                data_vistoria = dt.strftime('%d/%m/%Y %H:%M')
-            except:
-                pass
-        
-        header_data = [
-            ['Token da Vistoria:', token],
-            ['Data da Vistoria:', data_vistoria],
-            ['Status:', data.get('status', 'Concluída').title()]
-        ]
-        
-        header_table = Table(header_data, colWidths=[2*inch, 3*inch])
+        # Cabeçalho com fundo colorido
+        header_data = [['RELATÓRIO DE VISTORIA VEICULAR']]
+        header_table = Table(header_data, colWidths=[7*inch])
         header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#1f2937')),  # Azul escuro
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 20),
+            ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
         ]))
-        
         elements.append(header_table)
+        
+        # Linha decorativa
+        line_data = [['']]
+        line_table = Table(line_data, colWidths=[7*inch])
+        line_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#3b82f6')),  # Azul médio
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        elements.append(line_table)
+        
         elements.append(Spacer(1, 20))
         
         return elements
     
     def _create_vehicle_info(self, data):
-        """Criar seção de informações do veículo"""
+        """Criar seção com informações do veículo com design moderno"""
         elements = []
         
-        # Título da seção
-        section_title = Paragraph("Informações do Veículo", self.styles['SectionTitle'])
-        elements.append(section_title)
+        # Título da seção com fundo
+        section_header = [['INFORMAÇÕES DO VEÍCULO']]
+        section_table = Table(section_header, colWidths=[7*inch])
+        section_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#6366f1')),  # Roxo
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(section_table)
         
-        # Dados do veículo
+        elements.append(Spacer(1, 12))
+        
         veiculo = data.get('veiculo', {})
         
-        # Debug: verificar nome do cliente
-        nome_cliente = data.get('nome_cliente')
-        nome_terceiro = data.get('nome_terceiro')
-        print(f"📄 DEBUG PDF_UTILS - nome_cliente recebido: '{nome_cliente}'")
-        print(f"📄 DEBUG PDF_UTILS - nome_terceiro recebido: '{nome_terceiro}'")
-        
-        # Lógica: usar nome_terceiro se nome_cliente estiver vazio
-        nome_para_exibir = nome_cliente if nome_cliente else (nome_terceiro if nome_terceiro else 'N/A')
-        print(f"📄 DEBUG PDF_UTILS - nome que será exibido: '{nome_para_exibir}'")
-        
-        vehicle_data = [
-            ['Nome do Cliente:', nome_para_exibir],
-            ['Placa:', veiculo.get('placa', 'N/A') or 'Não informado'],
-            ['Modelo:', veiculo.get('modelo', 'N/A')],
-            ['Cor:', veiculo.get('cor', 'N/A')],
-            ['Ano:', veiculo.get('ano', 'N/A') or 'Não informado'],
-            ['KM Rodado:', veiculo.get('km_rodado', 'N/A') or 'Não informado']
+        # Card com informações do veículo
+        info_data = [
+            ['PLACA:', veiculo.get('placa', ''), 'MARCA:', veiculo.get('marca', '')],
+            ['MODELO:', veiculo.get('modelo', ''), 'ANO:', veiculo.get('ano', '')],
+            ['COR:', veiculo.get('cor', ''), 'CHASSI:', veiculo.get('chassi', '')],
+            ['RENAVAM:', veiculo.get('renavam', ''), '', '']
         ]
         
-        vehicle_table = Table(vehicle_data, colWidths=[2*inch, 3*inch])
-        vehicle_table.setStyle(TableStyle([
+        info_table = Table(info_data, colWidths=[1.2*inch, 1.8*inch, 1.2*inch, 1.8*inch])
+        info_table.setStyle(TableStyle([
+            # Fundo alternado
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.HexColor('#f8fafc'), colors.HexColor('#e2e8f0')]),
+            # Bordas
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#64748b')),
+            # Fontes
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),  # Labels primeira coluna
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),  # Labels terceira coluna
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),       # Valores segunda coluna
+            ('FONTNAME', (3, 0), (3, -1), 'Helvetica'),       # Valores quarta coluna
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            # Alinhamento
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+            # Padding
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            # Cores dos labels
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#374151')),
+            ('TEXTCOLOR', (2, 0), (2, -1), colors.HexColor('#374151')),
         ]))
         
-        elements.append(vehicle_table)
+        elements.append(info_table)
         elements.append(Spacer(1, 20))
         
         return elements
     
     def _create_questionnaire(self, data):
-        """Criar seção do questionário"""
+        """Criar seção do questionário com layout em duas colunas"""
         elements = []
         
-        # Título da seção
-        section_title = Paragraph("Itens Verificados", self.styles['SectionTitle'])
-        elements.append(section_title)
+        # Título da seção com fundo
+        section_header = [['QUESTIONÁRIO DE VISTORIA']]
+        section_table = Table(section_header, colWidths=[7*inch])
+        section_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#10b981')),  # Verde
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(section_table)
+        
+        elements.append(Spacer(1, 12))
         
         # Mapeamento de campos do questionário
         questionnaire_fields = {
@@ -241,8 +255,8 @@ class VistoriaPDFGenerator:
             'carregador_eletrico': 'Carregador Elétrico'
         }
         
-        # Criar dados da tabela
-        questionnaire_data = [['Item', 'Status']]
+        # Processar dados do questionário
+        items = []
         for field, label in questionnaire_fields.items():
             value = data.get(field, False)
             
@@ -253,26 +267,69 @@ class VistoriaPDFGenerator:
                 value = False
             
             status = '✓ Sim' if value else '✗ Não'
-            questionnaire_data.append([label, status])
+            items.append([label, status])
         
-        questionnaire_table = Table(questionnaire_data, colWidths=[3*inch, 1.5*inch])
+        # Dividir itens em duas colunas
+        mid_point = (len(items) + 1) // 2  # Arredondar para cima para balancear melhor
+        left_column = items[:mid_point]
+        right_column = items[mid_point:]
+        
+        # Criar dados da tabela com duas colunas
+        questionnaire_data = [['ITEM VERIFICADO', 'STATUS', 'ITEM VERIFICADO', 'STATUS']]  # Cabeçalho
+        
+        # Preencher as linhas
+        max_rows = max(len(left_column), len(right_column))
+        for i in range(max_rows):
+            left_item = left_column[i] if i < len(left_column) else ['', '']
+            right_item = right_column[i] if i < len(right_column) else ['', '']
+            questionnaire_data.append([left_item[0], left_item[1], right_item[0], right_item[1]])
+        
+        # Configurar larguras das colunas para acomodar duas colunas
+        col_widths = [2.3*inch, 0.7*inch, 2.3*inch, 0.7*inch]  # Ajustado
+        
+        questionnaire_table = Table(questionnaire_data, colWidths=col_widths)
         questionnaire_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            # Cabeçalho
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),  # Azul escuro
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            
+            # Corpo da tabela
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Status da primeira coluna
+            ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # Status da segunda coluna
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e5e7eb'))
+            
+            # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            
+            # Bordas e cores
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#64748b')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f1f5f9')]),
+            
+            # Linha vertical separando as colunas
+            ('LINEAFTER', (1, 0), (1, -1), 2, colors.HexColor('#475569')),
+            
+            # Colorir status baseado no valor
+            ('TEXTCOLOR', (1, 1), (1, -1), colors.HexColor('#059669')),  # Verde para ✓
+            ('TEXTCOLOR', (3, 1), (3, -1), colors.HexColor('#059669')),  # Verde para ✓
         ]))
         
         elements.append(questionnaire_table)
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 25))  # Aumentado
         
         return elements
     
     def _create_tire_info(self, data):
-        """Criar seção das informações dos pneus"""
+        """Criar seção das informações dos pneus com design profissional"""
         elements = []
         
         # Verificar se há dados de pneus
@@ -280,25 +337,52 @@ class VistoriaPDFGenerator:
         if not any(pneus.values()):
             return elements
         
-        # Título da seção
-        section_title = Paragraph("Informações dos Pneus", self.styles['SectionTitle'])
-        elements.append(section_title)
+        # Título da seção com fundo
+        section_header = [['INFORMAÇÕES DOS PNEUS']]
+        section_table = Table(section_header, colWidths=[7*inch])
+        section_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#dc2626')),  # Vermelho
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(section_table)
+        
+        elements.append(Spacer(1, 12))
         
         tire_data = [
+            ['POSIÇÃO', 'MARCA/INFORMAÇÃO'],
             ['Pneu Dianteiro Esquerdo:', pneus.get('marca_pneu_dianteiro_esquerdo', 'N/A') or 'Não informado'],
             ['Pneu Dianteiro Direito:', pneus.get('marca_pneu_dianteiro_direito', 'N/A') or 'Não informado'],
             ['Pneu Traseiro Esquerdo:', pneus.get('marca_pneu_traseiro_esquerdo', 'N/A') or 'Não informado'],
             ['Pneu Traseiro Direito:', pneus.get('marca_pneu_traseiro_direito', 'N/A') or 'Não informado']
         ]
         
-        tire_table = Table(tire_data, colWidths=[2.5*inch, 2.5*inch])
+        tire_table = Table(tire_data, colWidths=[2.5*inch, 3.5*inch])
         tire_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            # Cabeçalho
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            
+            # Corpo
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Primeira coluna negrito
+            ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),       # Segunda coluna normal
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#64748b')),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')])
         ]))
         
         elements.append(tire_table)
@@ -307,7 +391,7 @@ class VistoriaPDFGenerator:
         return elements
     
     def _create_observations(self, data):
-        """Criar seção de observações"""
+        """Criar seção de observações com design profissional"""
         elements = []
         
         # Verificar se há observações
@@ -320,14 +404,45 @@ class VistoriaPDFGenerator:
         if not observations:
             return elements
         
-        # Título da seção
-        section_title = Paragraph("Observações", self.styles['SectionTitle'])
-        elements.append(section_title)
+        # Título da seção com fundo
+        section_header = [['OBSERVAÇÕES GERAIS']]
+        section_table = Table(section_header, colWidths=[7*inch])
+        section_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#7c3aed')),  # Roxo
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 14),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(section_table)
         
-        for obs in observations:
-            obs_para = Paragraph(obs, self.styles['NormalText'])
-            elements.append(obs_para)
+        elements.append(Spacer(1, 12))
         
+        # Criar tabela de observações
+        obs_data = []
+        for i, obs in enumerate(observations, 1):
+            obs_data.append([f"{i}.", obs.replace(f"Observação {i}: ", "")])
+        
+        obs_table = Table(obs_data, colWidths=[0.5*inch, 5.5*inch])
+        obs_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # Números centralizados
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),    # Texto à esquerda
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cbd5e1')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#64748b')),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#f3f4f6')])
+        ]))
+        
+        elements.append(obs_table)
         elements.append(Spacer(1, 20))
         
         return elements
@@ -496,7 +611,7 @@ class VistoriaPDFGenerator:
                 ] + ([('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#f9fafb'))] if len(table_data) > 2 else [])))
                 
                 elements.append(photo_table)
-                elements.append(Spacer(1, 20))
+                elements.append(Spacer(1, 10))  # Reduzido de 20
                 
                 # Adicionar quebra de página se não for a última página de fotos
                 if page_index + photos_per_page < len(photos):
@@ -625,37 +740,85 @@ class VistoriaPDFGenerator:
                 print(f"   Caminho do banco: {assinatura_path}")
                 print(f"   Caminhos testados: {possible_signature_paths}")
             else:
-                # Sem assinatura, mostrar espaço para assinatura manual
-                no_sig_text = Paragraph("Assinatura não disponível ou pendente", self.styles['InfoValue'])
-                elements.append(no_sig_text)
-                elements.append(Spacer(1, 30))
+                # Sem assinatura, criar área de assinatura profissional
+                no_sig_header = [['ÁREA DE ASSINATURA']]
+                no_sig_table = Table(no_sig_header, colWidths=[7*inch])
+                no_sig_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fbbf24')),  # Amarelo
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 12),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(no_sig_table)
                 
-                # Linha para assinatura manual
-                line_text = Paragraph("_" * 50, self.styles['Normal'])
-                elements.append(line_text)
-                sig_label = Paragraph("Assinatura do Cliente", self.styles['InfoLabel'])
-                elements.append(sig_label)
+                elements.append(Spacer(1, 20))
+                
+                # Caixa para assinatura manual
+                signature_box = [[
+                    "Assinatura não disponível digitalmente\n\n"
+                    "Área reservada para assinatura manual:\n\n\n\n\n"
+                    "___________________________________________\n"
+                    "Assinatura do Cliente"
+                ]]
+                
+                sig_box_table = Table(signature_box, colWidths=[5*inch])
+                sig_box_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fef3c7')),  # Amarelo claro
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 20),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 20),
+                    ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#f59e0b')),
+                ]))
+                elements.append(sig_box_table)
         
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 15))
         
         return elements
     
     def _create_footer(self, data):
-        """Criar rodapé do PDF"""
+        """Criar rodapé do PDF com design profissional"""
         elements = []
         
-        elements.append(Spacer(1, 30))
+        elements.append(Spacer(1, 20))
         
-        footer_text = f"""
-        <para align="center">
-        <b>Sistema Ágil - Vistoria de Veículos</b><br/>
-        Relatório gerado automaticamente em {datetime.now().strftime('%d/%m/%Y às %H:%M')}<br/>
-        Conferente: {data.get('nome_conferente', 'N/A')}
-        </para>
-        """
+        # Linha separadora superior
+        line_data = [['']]
+        line_table = Table(line_data, colWidths=[7*inch])
+        line_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e5e7eb')),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        elements.append(line_table)
         
-        footer = Paragraph(footer_text, self.styles['Normal'])
-        elements.append(footer)
+        elements.append(Spacer(1, 10))
+        
+        # Footer principal com fundo
+        footer_data = [[
+            f"Sistema Ágil - Vistoria de Veículos\n"
+            f"Relatório gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
+            f"Conferente: {data.get('nome_conferente', 'N/A')}"
+        ]]
+        
+        footer_table = Table(footer_data, colWidths=[7*inch])
+        footer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#374151')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#d1d5db')),
+        ]))
+        elements.append(footer_table)
         
         return elements
 
